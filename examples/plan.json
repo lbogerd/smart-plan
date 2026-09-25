@@ -1,0 +1,66 @@
+{
+  "title": "Interactive project map",
+  "brief": "A small graph view for exploring project dependencies.",
+  "content": {
+    "steps": [
+      "Render nodes and edges with an existing graph library",
+      "Allow users to drag nodes",
+      "Persist the layout"
+    ],
+    "constraints": {
+      "avoid": ["custom graph layout engine"]
+    }
+  },
+  "parameters": [
+    {
+      "id": "testing",
+      "label": "Testing effort",
+      "type": "slider",
+      "value": 1,
+      "suggested": 1,
+      "description": "The core flow is small; start with essential checks.",
+      "previews": {
+        "0": "Manual check",
+        "1": "Build and core-flow smoke test",
+        "2": "Test persistence and graph interactions",
+        "3": "Automated common workflows",
+        "4": "Edge cases and browser regression tests",
+        "5": "Broad integration and performance coverage"
+      }
+    },
+    {
+      "id": "library",
+      "label": "Graph library",
+      "type": "text",
+      "value": "React Flow",
+      "suggested": "React Flow",
+      "description": "For example: React Flow for nodes, edges, and dragging."
+    },
+    {
+      "id": "notes",
+      "label": "Constraints",
+      "type": "textarea",
+      "value": "Use an existing library for layout."
+    }
+  ],
+  "features": [
+    {
+      "id": "graph",
+      "title": "Interactive graph",
+      "strength": 2,
+      "suggested": 2,
+      "levels": {
+        "0": "Leave it out",
+        "1": "Static nodes and edges",
+        "2": "Pan, zoom, and draggable nodes",
+        "3": "Add editing and save/load",
+        "4": "Automatic layouts and search",
+        "5": "Advanced grouping and collaboration"
+      }
+    }
+  ],
+  "agentMetadata": {
+    "source": "example",
+    "customFieldsArePreserved": true
+  }
+}

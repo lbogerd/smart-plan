@@ -1,0 +1,26 @@
+name: smart-plan
+services:
+  web:
+    build: .
+    restart: unless-stopped
+    init: true
+    environment:
+      APP_URL: https://smart-plan.tainer.run
+    ports:
+      - "127.0.0.1:3800:3000"
+    volumes:
+      - plan-data:/app/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+volumes:
+  plan-data:

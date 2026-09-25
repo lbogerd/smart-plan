@@ -1,0 +1,15 @@
+{
+  "title": "Mermaid examples",
+  "brief": "Flowchart, sequence diagram, and structured diagram examples.",
+  "content": "## Workflow\n\n```mermaid\nflowchart LR\n  A[Idea] --> B[Review]\n  B --> C[Build]\n```\n\n## Agent handoff\n\n```mermaid\nsequenceDiagram\n  User->>Agent: Review complete\n  Agent->>Service: Get changes\n  Service-->>Agent: Diff\n  Agent-->>User: Build result\n```\n\nOrdinary code stays unchanged.\n\n```json\n{\"status\":\"ready\"}\n```",
+  "diagrams": [
+    {
+      "id": "states",
+      "title": "Plan states",
+      "source": "stateDiagram-v2\n  [*] --> Draft\n  Draft --> Ready\n  Ready --> Draft: Revise",
+      "customMetadata": {
+        "keep": true
+      }
+    }
+  ]
+}

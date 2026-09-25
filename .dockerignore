@@ -1,0 +1,6 @@
+node_modules
+.output
+.tanstack
+data
+.git
+test-results
