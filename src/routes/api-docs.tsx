@@ -90,8 +90,9 @@ function Docs() {
             Plan, feature, and parameter objects preserve additional fields.
           </li>
           <li>
-            Known controls: slider, number, text, textarea, select, and toggle.
-            Unknown control types use a JSON editor.
+            Known controls: slider, number, text, textarea, select, toggle,
+            multi-select, radio, choice-cards, list, ranking, range, date,
+            date-range, url, and file. Unknown control types use a JSON editor.
           </li>
           <li>
             Feature strength runs from 0 to 5. Optional <code>levels</code> and
@@ -107,6 +108,70 @@ function Docs() {
             data volume.
           </li>
         </ul>
+        <h2>Input value formats</h2>
+        <pre>
+          {JSON.stringify(
+            [
+              { type: "multi-select", options: ["A", "B"], value: ["A"] },
+              { type: "radio", options: ["A", "B"], value: "A" },
+              {
+                type: "choice-cards",
+                options: ["A", "B"],
+                value: "A",
+                previews: {
+                  A: "Option A description",
+                  B: "Option B description",
+                },
+              },
+              {
+                type: "select",
+                presentation: "cards",
+                options: ["A", "B"],
+                value: "A",
+              },
+              { type: "list", value: ["Item"] },
+              { type: "ranking", options: ["A", "B"], value: ["B", "A"] },
+              { type: "range", min: 0, max: 10, step: 1, value: [2, 8] },
+              { type: "date", value: "2026-10-01" },
+              {
+                type: "date-range",
+                value: { start: "2026-10-01", end: "2026-10-15" },
+              },
+              { type: "url", value: "https://example.com" },
+              {
+                type: "file",
+                value: [
+                  {
+                    name: "sample.txt",
+                    type: "text/plain",
+                    size: 3,
+                    data: "YWJj",
+                  },
+                ],
+              },
+            ],
+            null,
+            2,
+          )}
+        </pre>
+        <p>
+          Each parameter also needs an id and label. Multi-select values are
+          unique members of options. Rankings contain every option exactly once,
+          in order. Radio, choice-cards, multi-select, and ranking require
+          nonempty unique options. Select presentation can be dropdown
+          (default), radio, or cards. Option descriptions use previews. Lists
+          contain editable strings. Numeric ranges contain two ordered values
+          within min and max (defaults 0 and 5). Dates use YYYY-MM-DD without a
+          time zone and may be empty strings; date ranges allow either endpoint
+          to be empty. URLs use HTTP(S) or an empty string.
+        </p>
+        <p>
+          File data is raw base64, with its decoded byte length in size. Limits
+          are 256 KiB per file and 512 KiB across the current plan; the 1 MB
+          request limit also applies. Files persist in plan JSON and share its
+          public visibility. Downloads are not rendered inline. Files in the
+          immutable original remain there even if removed from the current plan.
+        </p>
         <h2>Mermaid diagrams</h2>
         <p>
           Put a fenced mermaid block in Markdown content. The plan review page
@@ -152,17 +217,16 @@ function Docs() {
           plan. Rendering uses strict mode. Raw HTML, embedded images, and
           diagram links are disabled.
         </p>
-        <h2>Recommended value guidance</h2>
+        <h2>Optional value descriptions</h2>
         <p>
-          Recommend an explanation or concrete example for every discrete value:
-          each slider step, select option, toggle value (keys <code>true</code>{" "}
-          and <code>false</code>), and feature level from 0 to 5. Use parameter{" "}
+          Descriptions can be supplied for discrete values: each slider step,
+          select option, toggle value (keys <code>true</code> and{" "}
+          <code>false</code>), and feature level from 0 to 5. Use parameter{" "}
           <code>previews</code> and feature <code>levels</code>.
         </p>
         <p>
-          For open-ended text, numbers, and custom controls, put a
-          representative example or explanation in <code>description</code>. For
-          example: “Use a graph library; skip custom layout logic.”
+          For open-ended text, numbers, and custom controls, put a description
+          in <code>description</code>.
         </p>
         <p>
           Guidance is optional. Missing, partial, and empty maps remain valid.

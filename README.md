@@ -43,7 +43,25 @@ curl https://smart-plan.tainer.run/api/plans \
 
 The editor envelope has optional `title`, `brief`, `parameters`, `features`, `comments`, and `content`, all with defaults. `content` accepts **any JSON value**: Markdown, nested steps, graphs, arrays, or a custom document. `.passthrough()` preserves extra fields on plans, features, and parameters. Only recognized editor fields are constrained.
 
-Parameter types: `slider`, `number`, `text`, `textarea`, `select`, and `toggle`. Unknown types get a JSON editor. Use `suggested` and `description` to explain defaults, and `previews` to map values to scope descriptions. Slider defaults are 0–5 with step 1; override `min`, `max`, and `step` as needed. Select controls require `options`. IDs must be unique within their collection.
+Parameter types: `slider`, `number`, `text`, `textarea`, `select`, `toggle`, `multi-select`, `radio`, `choice-cards`, `list`, `ranking`, `range`, `date`, `date-range`, `url`, and `file`. Unknown types get a JSON editor. Use `suggested` and `description` to explain defaults, and `previews` to map values to scope descriptions. Slider defaults are 0–5 with step 1; override `min`, `max`, and `step` as needed. Select controls require `options`. IDs must be unique within their collection.
+
+New input formats (see `examples/inputs-plan.json`):
+
+| Type | `value` | Configuration |
+| --- | --- | --- |
+| `multi-select` | Array of unique selected strings | Nonempty unique `options` |
+| `radio`, `choice-cards` | One option string | Nonempty unique `options`; `previews` supplies option descriptions |
+| `list` | Array of strings | Add, edit, remove, and reorder items |
+| `ranking` | All option strings in order | Nonempty unique `options`; each appears exactly once |
+| `range` | `[lower, upper]` | `min`, `max`, `step`; defaults 0, 5, 1 |
+| `date` | `"YYYY-MM-DD"` or `""` | Calendar date without a time zone |
+| `date-range` | `{ "start": "", "end": "" }` | Each date is empty or YYYY-MM-DD; start cannot follow end |
+| `url` | HTTP(S) URL or `""` | Editable URL field |
+| `file` | Array of `{ name, type, size, data }` | `data` is raw base64; `size` is decoded bytes |
+
+Existing `select` parameters also accept `presentation: "dropdown" | "radio" | "cards"` (default dropdown), retaining their string value and options. Choice controls display optional `previews` beside each option. Ordering controls support keyboard-accessible up/down buttons.
+
+Attachments persist inside the plan JSON and are included in API responses and diffs. Limits are 256 KiB per file and 512 KiB of decoded file data across the current plan; the overall 1 MB request limit still applies. Downloaded files use a binary Blob; they are not rendered inline. Files share the plan's public visibility. Removing a file from the current plan does not remove it from the immutable original if it was submitted there.
 
 Features have `id`, `title`, optional `description`, a 0–5 `strength`, optional `suggested`, `comments`, and optional `levels` mapping strength values to scope descriptions. Strength 0 excludes a feature. When guidance is absent, the UI shows the value or its short level label. Guidance is recommended, never required: missing, partial, and empty maps remain valid. Supply an example or explanation for every slider step, select option, toggle value (`true`/`false`), and feature strength. For open-ended text, number, and custom controls, use `description` for a representative example. Optional authoring hints identify gaps without blocking saves.
 

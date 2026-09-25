@@ -2,7 +2,12 @@ import type { Plan, Parameter } from "./schema";
 
 function discreteValues(p: Parameter): string[] | undefined {
   if (p.type === "toggle") return ["true", "false"];
-  if (p.type === "select") return p.options;
+  if (
+    ["select", "radio", "choice-cards", "multi-select", "ranking"].includes(
+      p.type,
+    )
+  )
+    return p.options;
   if (p.type !== "slider") return undefined;
   const min = p.min ?? 0,
     max = p.max ?? 5,
