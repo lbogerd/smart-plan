@@ -45,6 +45,7 @@ try {
   await page.screenshot({
     path: "test-results/rules-disabled-desktop.png",
     fullPage: true,
+    animations: "disabled",
   });
   await close("Layout persistence");
   await expect(persistence).toBeFocused();
@@ -236,6 +237,7 @@ try {
   await page.screenshot({
     path: "test-results/rules-nested-mobile.png",
     fullPage: true,
+    animations: "disabled",
   });
   // API validation is applied to both creates and updates, including hidden cases.
   const bad = structuredClone(nested);

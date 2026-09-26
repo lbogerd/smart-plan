@@ -31,6 +31,7 @@ try {
   await page.screenshot({
     path: "test-results/deployed-desktop-closed.png",
     fullPage: true,
+    animations: "disabled",
   });
   const trigger = page.getByRole("button", { name: /^Adjust Testing effort:/ });
   await trigger.click();
@@ -40,6 +41,7 @@ try {
   await page.screenshot({
     path: "test-results/deployed-desktop-open.png",
     fullPage: true,
+    animations: "disabled",
   });
   await page
     .getByRole("button", { name: "Close Testing effort", exact: true })
@@ -49,11 +51,13 @@ try {
   await page.screenshot({
     path: "test-results/deployed-mobile-closed.png",
     fullPage: true,
+    animations: "disabled",
   });
   await trigger.click();
   await page.screenshot({
     path: "test-results/deployed-mobile-open.png",
     fullPage: true,
+    animations: "disabled",
   });
   assert.equal(
     await page.evaluate(
@@ -96,11 +100,13 @@ try {
     await page.screenshot({
       path: `test-results/deployed-persistence-${enabled ? "enabled" : "disabled"}-mobile.png`,
       fullPage: true,
+      animations: "disabled",
     });
     await page.setViewportSize({ width: 1440, height: 1100 });
     await page.screenshot({
       path: `test-results/deployed-persistence-${enabled ? "enabled" : "disabled"}-desktop.png`,
       fullPage: true,
+      animations: "disabled",
     });
     await page.setViewportSize({ width: 390, height: 844 });
   }
