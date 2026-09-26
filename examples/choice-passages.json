@@ -1,0 +1,45 @@
+{
+  "title": "Choose a delivery format",
+  "brief": "A small example of one decision with three coherent outcomes.",
+  "content": "## Delivery\n\n::passage{id=\"delivery\"}\n\n:::when{parameter=\"format\" equals=\"web\"}\n### Hosting\n\nPublish the site over HTTPS. Verify the layout on a phone and a desktop.\n:::\n\n:::when{parameter=\"format\" equals=\"pdf\"}\n### Print layout\n\nCheck page breaks and embedded fonts before exporting.\n:::\n\n:::when{parameter=\"format\" equals=\"markdown\"}\n### Portability\n\nUse relative image paths and standard Markdown so another renderer can display the document.\n:::",
+  "parameters": [
+    {
+      "id": "format",
+      "label": "Delivery format",
+      "type": "select",
+      "value": "web",
+      "suggested": "web",
+      "options": ["web", "pdf", "markdown"],
+      "summaries": {
+        "web": "a website",
+        "pdf": "a PDF",
+        "markdown": "a Markdown document"
+      },
+      "previews": {
+        "web": "A responsive page that can be shared with a link.",
+        "pdf": "A paginated file ready for printing.",
+        "markdown": "A portable text file ready for another tool."
+      }
+    }
+  ],
+  "passages": [
+    {
+      "id": "delivery",
+      "parameter": "format",
+      "cases": [
+        {
+          "value": "web",
+          "content": "Deliver [a website](input:format). Build a responsive reading page with a shareable URL."
+        },
+        {
+          "value": "pdf",
+          "content": "Deliver [a PDF](input:format). Produce a paginated document that can be downloaded and printed."
+        },
+        {
+          "value": "markdown",
+          "content": "Deliver [a Markdown document](input:format). Export the text and its local assets for use in other tools."
+        }
+      ]
+    }
+  ]
+}

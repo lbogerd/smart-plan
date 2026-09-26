@@ -17,6 +17,10 @@ sudo docker compose up --build --detach --wait
 
 Compose binds only `127.0.0.1:3800`, uses `https://smart-plan.tainer.run`, and persists plans in the `smart-plan_plan-data` volume. The current deployment is a public research workspace. Writes are serialized within a single process, use atomic file replacement, and reject stale revisions. This is not a multi-worker storage system.
 
+## Agent skill
+
+The [Smart Plan skill](skills/smart-plan/SKILL.md) contains the instructions for agents to prepare plans and read user changes. Copy `skills/smart-plan` into your agent's skills directory to install it.
+
 ## Author a plan
 
 Upload a `.md` file for a plain reading experience, or upload JSON / use the API for inline decisions. Markdown supports headings, lists, quotes, tables, code, images, and fenced Mermaid diagrams. Raw HTML is disabled. Diagrams are display-only and can be expanded.
@@ -49,11 +53,55 @@ Upload a `.md` file for a plain reading experience, or upload JSON / use the API
 }
 ```
 
-`[label](input:id)` references a parameter by ID. The rendered link text is the current value, or its short `summaries` entry. `previews` supplies the longer explanation shown with the expanded control; `description` is its fallback. Each control appears below the containing Markdown block. References in lists, quotes, headings, and tables work too. Repeated references share a value. Unresolved references render their label as plain text, and parameters without references do not appear. Code samples are never interpreted as controls.
+`[label](input:id)` references a parameter by ID. The rendered link text is the current value, or its short `summaries` entry. `previews` supplies the longer explanation shown with the expanded control; `description` is its fallback. Each control appears above the containing Markdown block. References in lists, quotes, headings, and tables work too. Repeated references share a value. Unknown input references are rejected on create/update; parameters without references do not appear. Code samples are never interpreted as controls.
 
 Only one adjustment is open at a time. Enter/Space opens it, Escape or the close button collapses it and restores focus. Adjustments stay local until **Save draft** or **Mark ready**. Reset restores a value from the immutable original. Failed saves preserve the local draft; leaving with unsaved changes prompts the browser’s normal confirmation. Marking ready does not call an agent.
 
 Plan content is Markdown text. There is no source editor, JSON editor, feature-card system, or separate editing mode. Custom metadata on plans and parameters is preserved, but legacy structured content and editor behavior are intentionally unsupported.
+
+### Coherent passages and sections
+
+Keep surrounding prose valid for every value of a value-only input. When the explanation depends on a decision, insert `::passage{id="persistence"}` and add a named entry to `passages`:
+
+```json
+{
+  "id": "persistence",
+  "parameter": "save",
+  "cases": [
+    {
+      "value": true,
+      "content": "Keep persistence [enabled](input:save). Restore the saved layout on reopening."
+    },
+    {
+      "value": false,
+      "content": "Keep persistence [disabled](input:save). Start with the default layout on reopening."
+    }
+  ]
+}
+```
+
+The corresponding parameter is `{ "id": "save", "label": "Persistence", "type": "toggle", "value": true }`. Values match by strict typed equality. Toggles and choice controls require a case for every option, even when a fallback is supplied. Numeric and open-ended inputs need a `fallback` Markdown string unless a slider’s bounded step values are fully covered (up to 1,001 values). Empty fallback text is explicit and allowed. Array, range, and file inputs remain value-only controls.
+
+Use a conditional container to show dependent instructions:
+
+```markdown
+:::when{parameter="save" equals="true"}
+
+### Storage
+
+Save positions by project ID.
+:::
+```
+
+The parameter’s type determines how `equals` is parsed: exact text, a numeric literal, or `true`/`false`. No expressions or all/any operators run. Conditions can be nested with longer outer fences (`::::`). Each fence must close explicitly. Unknown directives are rejected; literal syntax belongs in inline code or fenced code blocks.
+
+A controlling input must be reachable outside conditions and in every alternative of its containing passages. Place it outside a passage if some cases intentionally omit it. Validation checks every authored branch, regardless of current values, and rejects unknown references, duplicate IDs/cases, impossible case values, missing fallbacks/coverage, recursive passages, and unreachable controllers. Passage nesting is limited to eight levels and expanded plans to 20,000 Markdown nodes.
+
+Passage controls remain mounted above the replaceable passage. A value change can replace a sentence with a list or headings while retaining the open control and cursor. Hidden sections keep their values; if the active control becomes hidden, focus returns to an available controller. There is no added rule-authoring UI.
+
+**For agents:** fetch `?full=true`, use each current `parameters[].value` to select the matching passage case (or its explicit fallback), and include `when` contents only when the typed equality matches. Recursively apply the same rules to nested passages and sections, then substitute inline values. Only those resolved instructions apply. Authored Markdown and rules remain unchanged when a user adjusts a value; the API diff contains parameter changes, not a second generated document.
+
+See `examples/choice-passages.json` for a three-way choice and `examples/plan.json` for persistence and interaction variants.
 
 ### Inputs
 
@@ -95,10 +143,11 @@ PLAN_DATA_DIR=/tmp/smart-plan-tests npm run dev -- --port 3802
 node tests/browser.smoke.mjs
 node tests/inputs.smoke.mjs
 node tests/mermaid.smoke.mjs
+BASE_URL=http://127.0.0.1:3802 node tests/rules.smoke.mjs
 # Read-only production verification
 node tests/deployed.smoke.mjs
 ```
 
-Set `BASE_URL` to test another origin. Browser tests use Playwright Chromium (`npx playwright install chromium`). They cover disclosures, keyboard focus, resets, all input families, file upload/download, save/reload, ready status, real revision conflicts, plain Markdown uploads, diagram rendering, and mobile overflow. Screenshots are written to ignored `test-results/`.
+Set `BASE_URL` to test another origin. Browser tests use Playwright Chromium (`npx playwright install chromium`). They cover passage/condition combinations, typed validation, nested Markdown and passages, text-cursor preservation, repeated controls, hidden-control focus recovery, disclosures, keyboard focus, resets, all input families, file upload/download, save/reload, ready status, real revision conflicts, plain Markdown uploads, diagram rendering, and mobile overflow. Screenshots are written to ignored `test-results/`.
 
 Approved visual references are in `docs/design/`. CSS uses Tailwind’s [Vite integration](https://tailwindcss.com/docs/installation/using-vite); Markdown rendering uses [react-markdown](https://github.com/remarkjs/react-markdown).

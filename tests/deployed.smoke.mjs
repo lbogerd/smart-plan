@@ -31,6 +31,7 @@ try {
   await page.screenshot({
     path: "test-results/deployed-desktop-closed.png",
     fullPage: true,
+    animations: "disabled",
   });
   const trigger = page.getByRole("button", { name: /^Adjust Testing effort:/ });
   await trigger.click();
@@ -40,6 +41,7 @@ try {
   await page.screenshot({
     path: "test-results/deployed-desktop-open.png",
     fullPage: true,
+    animations: "disabled",
   });
   await page
     .getByRole("button", { name: "Close Testing effort", exact: true })
@@ -49,11 +51,13 @@ try {
   await page.screenshot({
     path: "test-results/deployed-mobile-closed.png",
     fullPage: true,
+    animations: "disabled",
   });
   await trigger.click();
   await page.screenshot({
     path: "test-results/deployed-mobile-open.png",
     fullPage: true,
+    animations: "disabled",
   });
   assert.equal(
     await page.evaluate(
@@ -64,13 +68,60 @@ try {
   await expect(
     page.getByRole("button", { name: "Save draft", exact: true }),
   ).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Close Testing effort", exact: true })
+    .click();
+  const persistence = page.getByRole("button", {
+    name: /^Adjust Layout persistence:/,
+  });
+  await persistence.click();
+  const toggle = page.getByRole("switch", { name: "Layout persistence" });
+  const initialPersistence = await toggle.getAttribute("aria-checked");
+  for (const enabled of [true, false]) {
+    if ((await toggle.getAttribute("aria-checked")) !== String(enabled))
+      await toggle.click();
+    if (enabled) {
+      await expect(
+        page.getByRole("heading", { name: "A small, durable model" }),
+      ).toBeVisible();
+      await expect(
+        page.getByText("Save the current node positions", { exact: false }),
+      ).toBeVisible();
+    } else {
+      await expect(
+        page.getByRole("heading", { name: "A small, durable model" }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByText("Reopening the project restores the default layout.", {
+          exact: false,
+        }),
+      ).toBeVisible();
+    }
+    await page.screenshot({
+      path: `test-results/deployed-persistence-${enabled ? "enabled" : "disabled"}-mobile.png`,
+      fullPage: true,
+      animations: "disabled",
+    });
+    await page.setViewportSize({ width: 1440, height: 1100 });
+    await page.screenshot({
+      path: `test-results/deployed-persistence-${enabled ? "enabled" : "disabled"}-desktop.png`,
+      fullPage: true,
+      animations: "disabled",
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+  }
+  if ((await toggle.getAttribute("aria-checked")) !== initialPersistence)
+    await toggle.click();
+  await expect(
+    page.getByRole("button", { name: "Save draft", exact: true }),
+  ).toHaveCount(0);
   assert.deepEqual(errors, []);
   console.log(
     JSON.stringify({
       passed: true,
       url: seed.planUrl,
       checks:
-        "HTTPS health, library, Markdown, local font, closed/open disclosures, mobile layout, no browser errors; no writes",
+        "HTTPS health, library, Markdown, local font, closed/open disclosures, passage switching, conditional storage section, mobile layout, no browser errors; no writes",
     }),
   );
 } finally {

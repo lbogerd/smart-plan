@@ -9,3 +9,8 @@ The approved concepts establish a typography-first Markdown document with inline
 - `deployed-mobile-closed.png`: actual deployed UI with all adjustments collapsed.
 
 The implementation uses locally hosted Inter, a 726px desktop text column, restrained indigo disclosure links, and Tailwind-styled Radix controls. Screenshots were captured from the public tainer deployment without changing stored values.
+
+The persistence examples show authored passage variants and conditional sections in the deployed app:
+
+- `persistence-enabled.png`: the saved-layout explanation and storage instructions are visible.
+- `persistence-disabled.png`: the explanation describes a fresh layout on reopening; storage instructions are hidden. The same control remains open.
