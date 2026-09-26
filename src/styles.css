@@ -1575,6 +1575,12 @@ input[type="file"]::file-selector-button {
   color: inherit;
   cursor: pointer;
 }
+/* Keep editable text large enough to avoid iOS Safari's focus zoom. */
+@media (max-width: 650px), (any-pointer: coarse) {
+  :root :is(input, textarea, select) {
+    font-size: max(16px, 1em);
+  }
+}
 @media (max-width: 480px) {
   .date-range {
     grid-template-columns: 1fr;
