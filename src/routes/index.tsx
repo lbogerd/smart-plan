@@ -1,196 +1,155 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { ArrowRight, Plus, Upload, X } from "lucide-react";
-import { api, Brand } from "../components/editor";
-import { Button } from "../components/ui";
-import { GuidanceHints } from "../components/guidance-hints";
-import { example } from "../lib/example";
-import { planSchema, type Plan, type PlanSummary } from "../lib/schema";
+import { useEffect, useRef, useState } from "react";
+import { ArrowUpRight, ArrowRight, Upload, FileText } from "lucide-react";
+import { api } from "../lib/api";
+import { Button, Header } from "../components/ui";
+import type { PlanSummary } from "../lib/schema";
 export const Route = createFileRoute("/")({ component: Home });
 function Home() {
   const [plans, setPlans] = useState<PlanSummary[]>();
-  const [listError, setListError] = useState("");
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [mode, setMode] = useState<"new" | "import" | null>(null);
-  const [raw, setRaw] = useState("");
-  const [title, setTitle] = useState("");
-  const [brief, setBrief] = useState("");
+  const [busy, setBusy] = useState(false);
+  const upload = useRef<HTMLInputElement>(null);
   async function load() {
-    setListError("");
+    setError("");
     try {
       setPlans(await api("/api/plans"));
     } catch (e) {
-      setListError((e as Error).message);
+      setError((e as Error).message);
     }
   }
   useEffect(() => {
+    document.title = "Plans · Smart Plan";
     void load();
   }, []);
-  let importedPlan: Plan | undefined;
-  try {
-    const result = planSchema.safeParse(JSON.parse(raw));
-    if (result.success) importedPlan = result.data;
-  } catch {
-    /* Show validation only on submit. */
-  }
-  async function create(input: unknown) {
+  async function importFile(file: File) {
     setBusy(true);
     setError("");
     try {
-      const data = await api("/api/plans", "POST", input);
-      window.location.assign(`/plans/${data.id}`);
+      if (file.size > 1_048_576) throw new Error("Maximum file size is 1 MB.");
+      const text = await file.text();
+      const markdown = /\.(md|markdown|txt)$/i.test(file.name);
+      const heading = text.match(/^#\s+(.+)$/m);
+      const input = markdown
+        ? {
+            title: heading?.[1] || file.name.replace(/\.[^.]+$/, ""),
+            content:
+              heading && text.startsWith(heading[0])
+                ? text.slice(heading[0].length).trimStart()
+                : text,
+          }
+        : JSON.parse(text);
+      const record = await api("/api/plans", "POST", input);
+      window.location.assign(`/plans/${record.id}`);
     } catch (e) {
-      setError((e as Error).message);
+      setError(
+        e instanceof SyntaxError
+          ? "Choose a Markdown or valid JSON file."
+          : (e as Error).message,
+      );
       setBusy(false);
     }
   }
   return (
     <>
-      <header className="topbar">
-        <Brand />
-        <a href="/api-docs" className="quiet-link">
-          Agent API <ArrowRight size={15} />
+      <Header>
+        <a
+          href="/api-docs"
+          className="inline-flex items-center gap-1 hover:text-foreground"
+        >
+          API
+          <ArrowUpRight size={14} />
         </a>
-      </header>
-      <main className="plan-library">
-        <div className="library-heading">
-          <h1>Plans</h1>
-          <div className="library-actions">
-            <Button
-              aria-expanded={mode === "import"}
-              onClick={() => {
-                setMode(mode === "import" ? null : "import");
-                setError("");
-              }}
-            >
-              <Upload size={15} /> Import
-            </Button>
-            <Button
-              className="primary"
-              aria-expanded={mode === "new"}
-              onClick={() => {
-                setMode(mode === "new" ? null : "new");
-                setError("");
-              }}
-            >
-              <Plus size={15} /> New plan
-            </Button>
+      </Header>
+      <main
+        id="main"
+        className="mx-auto max-w-[880px] px-6 pb-20 pt-14 sm:px-8 sm:pt-24"
+      >
+        <div className="mb-12 flex items-end justify-between gap-4">
+          <div>
+            <p className="mb-4 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+              Workspace
+            </p>
+            <h1 className="text-4xl font-semibold tracking-[-0.05em] sm:text-5xl">
+              Plans
+            </h1>
           </div>
-        </div>
-        {mode && (
-          <form
-            className="card library-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (mode === "new")
-                void create({ title, brief, parameters: example.parameters });
-              else {
-                try {
-                  void create(JSON.parse(raw));
-                } catch {
-                  setError("Paste valid JSON to import a plan.");
-                }
-              }
+          <Button onClick={() => upload.current?.click()} disabled={busy}>
+            <Upload size={14} />
+            {busy ? "Uploading…" : "Upload plan"}
+          </Button>
+          <input
+            ref={upload}
+            type="file"
+            accept=".md,.markdown,.txt,.json"
+            aria-label="Upload Markdown or JSON"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void importFile(file);
+              e.target.value = "";
             }}
+          />
+        </div>
+        {error && (
+          <div
+            role="alert"
+            className="mb-6 flex items-center gap-3 text-sm text-red-700"
           >
-            <div className="section-title">
-              <h2>{mode === "new" ? "New plan" : "Import plan"}</h2>
-              <Button
-                type="button"
-                className="ghost icon-button"
-                aria-label="Close form"
-                disabled={busy}
-                onClick={() => setMode(null)}
-              >
-                <X size={16} />
-              </Button>
-            </div>
-            {mode === "new" ? (
-              <>
-                <label htmlFor="title">Project name</label>
-                <input
-                  id="title"
-                  autoFocus
-                  required
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-                <label htmlFor="brief">Brief</label>
-                <textarea
-                  id="brief"
-                  value={brief}
-                  onChange={(e) => setBrief(e.target.value)}
-                />
-              </>
-            ) : (
-              <>
-                <label htmlFor="json">Plan JSON</label>
-                <textarea
-                  id="json"
-                  autoFocus
-                  className="code-input"
-                  required
-                  rows={7}
-                  value={raw}
-                  onChange={(e) => setRaw(e.target.value)}
-                />
-                {importedPlan && <GuidanceHints plan={importedPlan} />}
-              </>
-            )}
-            {error && (
-              <p className="inline-error" role="alert">
-                {error}
-              </p>
-            )}
-            <Button className="primary" disabled={busy} type="submit">
-              {busy
-                ? "Saving…"
-                : mode === "new"
-                  ? "Create plan"
-                  : "Import plan"}
-            </Button>
-          </form>
-        )}
-        {listError ? (
-          <div className="inline-error" role="alert">
-            {listError} <Button onClick={load}>Retry</Button>
+            {error}
+            {!plans && <Button onClick={load}>Retry</Button>}
           </div>
-        ) : !plans ? (
-          <p className="empty" role="status">
+        )}
+        {!plans ? (
+          <p role="status" className="text-sm text-muted-foreground">
             Loading plans…
           </p>
         ) : (
-          <div className="card plan-list">
+          <div className="divide-y divide-border border-y border-border">
             {plans.map((plan) => (
-              <a className="plan-row" key={plan.id} href={`/plans/${plan.id}`}>
-                <div className="plan-row-title">
-                  <h2>{plan.title}</h2>
-                  {plan.isExample && (
-                    <span className="example-badge">Example</span>
-                  )}
+              <a
+                key={plan.id}
+                href={`/plans/${plan.id}`}
+                className="group flex items-center gap-4 py-6 transition-colors hover:bg-muted/40 sm:gap-6"
+              >
+                <FileText
+                  size={19}
+                  strokeWidth={1.4}
+                  className="hidden shrink-0 text-muted-foreground sm:block"
+                />
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-lg font-medium tracking-tight">
+                    {plan.title}
+                  </h2>
+                  <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                    {plan.isExample && (
+                      <>
+                        <span>Example</span>
+                        <span>·</span>
+                      </>
+                    )}
+                    <span>{plan.status === "ready" ? "Ready" : "Draft"}</span>
+                    <span>·</span>
+                    <time dateTime={plan.updatedAt}>
+                      {new Date(plan.updatedAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        timeZone: "UTC",
+                      })}
+                    </time>
+                  </div>
                 </div>
-                <div className="plan-row-meta">
-                  <span className={`plan-status ${plan.status}`}>
-                    {plan.status === "ready" ? "Ready" : "Draft"}
-                  </span>
-                  <time dateTime={plan.updatedAt} title={plan.updatedAt}>
-                    {new Date(plan.updatedAt).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </time>
-                  <ArrowRight size={16} />
-                </div>
+                <ArrowRight
+                  size={16}
+                  className="mr-2 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-accent"
+                />
               </a>
             ))}
-            {plans.length === 0 && <p className="empty">No plans yet.</p>}
+            {!plans.length && (
+              <p className="py-10 text-muted-foreground">No plans yet.</p>
+            )}
           </div>
         )}
-        <p className="library-note">
-          Public workspace · Anyone can view and edit these plans.
-        </p>
       </main>
     </>
   );

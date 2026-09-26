@@ -10,7 +10,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Smart Plan · Make room for just enough" },
+      { title: "Smart Plan" },
     ],
     links: [{ rel: "stylesheet", href: stylesheet }],
   }),
@@ -20,13 +20,19 @@ export const Route = createRootRoute({
         <HeadContent />
       </head>
       <body>
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:bg-background focus:p-3"
+        >
+          Skip to content
+        </a>
         <Outlet />
         <Scripts />
       </body>
     </html>
   ),
   notFoundComponent: () => (
-    <main className="landing">
+    <main id="main" className="mx-auto max-w-3xl space-y-4 px-6 py-20">
       <h1>Plan not found</h1>
       <a href="/">Back to Smart Plan</a>
     </main>

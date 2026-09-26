@@ -107,7 +107,7 @@ export async function updatePlan(id: string, input: unknown) {
 }
 
 // One stable persisted example; serialize first visits in this single-process service.
-const exampleId = "24c63e69-d694-4a51-9ca8-a7538d01bf80";
+const exampleId = "f173c813-cbce-49b0-846c-af60fd311e8b";
 let exampleInitialization: Promise<void> | undefined;
 async function ensureExample() {
   if (!exampleInitialization) {
@@ -152,7 +152,7 @@ export async function listPlans(origin: string): Promise<PlanSummary[]> {
       title: record.plan.title,
       status: record.status,
       updatedAt: record.updatedAt,
-      editorUrl: `${origin}/plans/${record.id}`,
+      planUrl: `${origin}/plans/${record.id}`,
       isExample: record.id === exampleId,
     }));
 }

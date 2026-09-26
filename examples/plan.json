@@ -1,66 +1,77 @@
 {
   "title": "Interactive project map",
-  "brief": "A small graph view for exploring project dependencies.",
-  "content": {
-    "steps": [
-      "Render nodes and edges with an existing graph library",
-      "Allow users to drag nodes",
-      "Persist the layout"
-    ],
-    "constraints": {
-      "avoid": ["custom graph layout engine"]
-    }
-  },
+  "brief": "A focused way to explore project dependencies and understand how the pieces fit together.",
+  "content": "## The approach\n\nBuild a lightweight graph of files and dependencies. Keep the first release small and make the relationships easy to follow.\n\n> Make the relationships clear before adding ways to edit them.\n\n## Exploring the graph\n\nUse [React Flow](input:library) to render the graph. Start with [pan, zoom, and drag](input:interaction) so people can arrange the map as they explore.\n\n1. **Render the project.** Show files and dependencies as a readable network of nodes and edges.\n2. **Make it explorable.** Follow connections without losing your place in the project.\n3. **Keep the context.** Show a file’s path and its immediate dependencies when selected.\n\n## Validation\n\nBefore shipping, run [essential checks](input:testing) on the core workflow. Verify that the graph loads, nodes move correctly, and the layout survives a refresh.\n\n## Remembering the layout\n\nKeep layout persistence [enabled](input:persistence). Save node positions after each drag and restore them when the project is reopened.\n\n### A small, durable model\n\nStore positions by project ID, separate from the graph data. If a file disappears, discard its saved position; leave the rest of the layout intact.\n\n## Boundaries\n\n[Use an existing library for layout.](input:constraints) Defer collaborative editing and custom layout algorithms until the core experience proves useful.\n",
   "parameters": [
+    {
+      "id": "library",
+      "label": "Graph library",
+      "type": "select",
+      "value": "React Flow",
+      "options": ["React Flow", "Cytoscape.js", "Sigma.js"],
+      "previews": {
+        "React Flow": "Nodes, edges, and familiar interactions out of the box.",
+        "Cytoscape.js": "Graph analysis with a broad choice of layouts.",
+        "Sigma.js": "WebGL rendering for larger networks."
+      }
+    },
+    {
+      "id": "interaction",
+      "label": "Interaction depth",
+      "type": "slider",
+      "summaries": {
+        "0": "a static overview",
+        "1": "pan and zoom",
+        "2": "pan, zoom, and drag",
+        "3": "selection and filtering",
+        "4": "search and automatic layouts",
+        "5": "grouping and collaboration"
+      },
+      "value": 2,
+      "previews": {
+        "0": "A read-only picture of the project.",
+        "1": "Explore the graph without rearranging it.",
+        "2": "Pan, zoom, and move nodes into a useful arrangement.",
+        "3": "Focus the map on selected files and relationships.",
+        "4": "Find files and arrange the graph automatically.",
+        "5": "Organize related files and work on the map together."
+      }
+    },
     {
       "id": "testing",
       "label": "Testing effort",
       "type": "slider",
+      "summaries": {
+        "0": "manual checks",
+        "1": "essential checks",
+        "2": "core integration tests",
+        "3": "workflow tests",
+        "4": "browser regression tests",
+        "5": "comprehensive tests"
+      },
       "value": 1,
-      "suggested": 1,
-      "description": "The core flow is small; start with essential checks.",
       "previews": {
-        "0": "Manual check",
-        "1": "Build and core-flow smoke test",
-        "2": "Test persistence and graph interactions",
-        "3": "Automated common workflows",
-        "4": "Edge cases and browser regression tests",
-        "5": "Broad integration and performance coverage"
+        "0": "Verify the main workflow by hand.",
+        "1": "Build and core-flow smoke test.",
+        "2": "Test persistence and graph interactions.",
+        "3": "Automate the common user workflows.",
+        "4": "Cover edge cases and browser regressions.",
+        "5": "Include integration, accessibility, and performance coverage."
       }
     },
     {
-      "id": "library",
-      "label": "Graph library",
-      "type": "text",
-      "value": "React Flow",
-      "suggested": "React Flow",
-      "description": "For example: React Flow for nodes, edges, and dragging."
+      "id": "persistence",
+      "label": "Layout persistence",
+      "type": "toggle",
+      "value": true,
+      "description": "Remember the arrangement between visits."
     },
     {
-      "id": "notes",
+      "id": "constraints",
       "label": "Constraints",
       "type": "textarea",
-      "value": "Use an existing library for layout."
+      "value": "Use an existing library for layout.",
+      "description": "Keep the implementation focused."
     }
-  ],
-  "features": [
-    {
-      "id": "graph",
-      "title": "Interactive graph",
-      "strength": 2,
-      "suggested": 2,
-      "levels": {
-        "0": "Leave it out",
-        "1": "Static nodes and edges",
-        "2": "Pan, zoom, and draggable nodes",
-        "3": "Add editing and save/load",
-        "4": "Automatic layouts and search",
-        "5": "Advanced grouping and collaboration"
-      }
-    }
-  ],
-  "agentMetadata": {
-    "source": "example",
-    "customFieldsArePreserved": true
-  }
+  ]
 }

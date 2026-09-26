@@ -1,134 +1,107 @@
 import { chromium, expect } from "@playwright/test";
 import assert from "node:assert/strict";
-import { mkdir } from "node:fs/promises";
-const base = process.env.BASE_URL || "https://smart-plan.tainer.run";
+import { mkdir, readFile } from "node:fs/promises";
+const base = process.env.BASE_URL || "http://127.0.0.1:3802";
 const browser = await chromium.launch({ headless: true });
-const page = await browser.newPage({ viewport: { width: 1440, height: 1080 } });
+const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
 const errors = [];
-page.on("pageerror", (error) => errors.push(error.message));
+page.on("pageerror", (e) => errors.push(e.message));
+page.on("console", (m) => {
+  if (m.type() === "error") errors.push(m.text());
+});
 try {
+  await mkdir("test-results", { recursive: true });
   await page.goto(base);
-  await page.locator(".plan-list").waitFor();
-  const summaries = await page.request
-    .get(`${base}/api/plans`)
-    .then((r) => r.json());
-  const seed = summaries.find((p) => p.isExample);
-  const proposal = await page.request
-    .get(`${base}/api/plans/${seed.id}?full=true`)
-    .then((r) => r.json());
-  await page.getByRole("button", { name: "Import", exact: true }).click();
-  await page.getByLabel("Plan JSON").fill(JSON.stringify(proposal.original));
-  await page.getByRole("button", { name: "Import plan", exact: true }).click();
-  await page.waitForURL("**/plans/*");
+  await expect(
+    page.getByRole("heading", { name: "Plans", exact: true }),
+  ).toBeVisible();
+  await page.locator("main a[href^='/plans/']").first().waitFor();
   await page
-    .getByRole("heading", { name: "A calmer project planner" })
-    .waitFor();
+    .getByLabel("Upload Markdown or JSON")
+    .setInputFiles("examples/plan.json");
+  await page.waitForURL("**/plans/*");
+  await expect(
+    page.getByRole("heading", { name: "Interactive project map", exact: true }),
+  ).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
   const id = new URL(page.url()).pathname.split("/").at(-1);
+  await expect(page.getByRole("slider")).toHaveCount(0);
+  await expect(page.getByRole("textbox")).toHaveCount(0);
+  await page.screenshot({
+    path: "test-results/reader-desktop-closed.png",
+    fullPage: true,
+  });
+  const testing = page.getByRole("button", { name: /^Adjust Testing effort:/ });
+  await testing.focus();
+  await page.keyboard.press("Enter");
   const slider = page.getByRole("slider", {
     name: "Testing effort",
     exact: true,
   });
-  await expect(page.getByRole("tab")).toHaveCount(0);
-  await expect(
-    page.getByRole("heading", { name: "The smallest useful workflow" }),
-  ).toBeVisible();
-  await expect(page.locator(".review-summary")).toContainText("0 changes");
+  await expect(slider).toHaveAttribute("aria-valuenow", "1");
+  await page.screenshot({
+    path: "test-results/reader-desktop-open.png",
+    fullPage: true,
+  });
   await slider.focus();
   await page.keyboard.press("ArrowRight");
-  await expect(
-    page.getByRole("button", { name: "Reset Testing effort", exact: true }),
-  ).toBeVisible();
+  await expect(testing).toContainText("core integration tests");
   await page
     .getByRole("button", { name: "Reset Testing effort", exact: true })
     .click();
   await expect(slider).toHaveAttribute("aria-valuenow", "1");
-  await expect(page.locator(".review-summary")).toContainText("0 changes");
   await slider.focus();
   await page.keyboard.press("ArrowRight");
-  const featureSlider = page.getByRole("slider", {
-    name: "Parameter editor strength",
-    exact: true,
-  });
-  await featureSlider.focus();
-  await page.keyboard.press("Home");
-  await expect(page.locator(".feature-excluded")).toContainText("Excluded");
+  await page.keyboard.press("Escape");
+  await expect(slider).toHaveCount(0);
+  await expect(testing).toBeFocused();
+  await page.getByRole("button", { name: /^Adjust Graph library:/ }).click();
   await page
-    .getByRole("button", {
-      name: "Reset Parameter editor strength",
-      exact: true,
-    })
+    .getByLabel("Graph library", { exact: true })
+    .selectOption("Cytoscape.js");
+  await page
+    .getByRole("button", { name: /^Adjust Layout persistence:/ })
     .click();
-  await expect(page.locator(".feature-excluded")).toHaveCount(0);
-  await page.getByLabel("Implementation approach").selectOption("Balanced");
-  await page.getByLabel("Save between visits").click();
+  await expect(page.getByRole("combobox")).toHaveCount(0);
+  await page.getByRole("switch", { name: "Layout persistence" }).click();
+  await page.getByRole("button", { name: /^Adjust Constraints:/ }).click();
   await page
-    .getByLabel("Build constraints")
-    .fill("Use libraries. Keep the test suite small.");
-  await page
-    .getByLabel("Comments for Parameter editor")
-    .fill("Simple controls are enough.");
-  await page.getByRole("button", { name: "Add feature", exact: true }).click();
-  await page.getByLabel("Feature name").fill("Markdown export");
-  await page
-    .getByLabel("What should it do?")
-    .fill("Download the adjusted scope.");
-  await page
-    .locator("form")
-    .getByRole("button", { name: "Add feature", exact: true })
-    .click();
-  await page
-    .getByLabel("A note for your agent")
-    .fill("Build only what helps prove the concept.");
-  await page
-    .getByRole("button", { name: "Ready for agent", exact: true })
-    .click();
-  await page
-    .getByRole("status")
-    .filter({ hasText: "Ready for your agent." })
-    .waitFor();
-  const response = await page.request.get(`${base}/api/plans/${id}?full=true`);
-  const record = await response.json();
-  assert.equal(record.status, "ready");
-  assert.equal(record.revision, 2);
-  assert.equal(record.plan.parameters[0].value, 2);
-  assert.equal(record.plan.parameters[1].value, "Balanced");
-  assert.equal(record.plan.parameters[3].value, false);
-  assert.equal(record.plan.features.length, 4);
-  assert.equal(record.plan.features[0].comments, "Simple controls are enough.");
-  assert.equal(record.original.parameters[0].value, 1);
+    .getByLabel("Constraints", { exact: true })
+    .fill("Keep the first release small.");
+  await page.getByRole("button", { name: "Close Constraints" }).click();
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect(page.getByRole("status")).toHaveText("Saved");
+  await page.getByRole("button", { name: "Mark ready", exact: true }).click();
+  await expect(page.getByRole("status")).toHaveText("Ready");
+  const saved = await page.request
+    .get(`${base}/api/plans/${id}?full=true`)
+    .then((r) => r.json());
+  assert.equal(saved.status, "ready");
+  assert.equal(saved.revision, 3);
+  assert.equal(saved.plan.parameters[2].value, 2);
+  assert.equal(saved.plan.parameters[0].value, "Cytoscape.js");
+  assert.equal(saved.plan.parameters[3].value, false);
+  assert.equal(saved.original.parameters[2].value, 1);
+  assert.equal(saved.plan.content, saved.original.content);
   await page.reload();
-  await page
-    .getByRole("heading", { name: "A calmer project planner" })
-    .waitFor();
-  assert.equal(
-    await page.getByLabel("A note for your agent").inputValue(),
-    record.plan.comments,
-  );
-  await mkdir("test-results", { recursive: true });
-  await page.screenshot({
-    path: "test-results/editor-desktop.png",
-    fullPage: true,
+  await expect(testing).toContainText("core integration tests");
+  await expect(page.getByRole("slider")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Ready", exact: true }),
+  ).toBeDisabled();
+  // Real revision conflict: edits stay in the browser and the other writer wins.
+  await page.request.patch(`${base}/api/plans/${id}`, {
+    data: { revision: 3, status: "draft" },
   });
-  await page
-    .getByRole("heading", { name: "The smallest useful workflow" })
-    .waitFor();
-  await page.getByText("Plan JSON", { exact: true }).click();
+  await testing.click();
+  await slider.focus();
+  await page.keyboard.press("ArrowRight");
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("another session");
+  await expect(testing).toContainText("workflow tests");
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByText("Plan JSON", { exact: true }).click();
-  await page.getByLabel("A note for your agent").focus();
-  await page.keyboard.press("Tab");
-  assert.equal(
-    await page.evaluate(() => {
-      const focused = document.activeElement.getBoundingClientRect();
-      return (
-        focused.bottom <=
-        document.querySelector(".save-bar").getBoundingClientRect().top
-      );
-    }),
-    true,
-  );
   await page.screenshot({
-    path: "test-results/editor-mobile.png",
+    path: "test-results/reader-mobile-open.png",
     fullPage: true,
   });
   assert.equal(
@@ -137,45 +110,45 @@ try {
     ),
     false,
   );
-  const conflict = await page.request.patch(`${base}/api/plans/${id}`, {
-    data: { revision: 1, status: "draft" },
+  await page.getByRole("button", { name: "Close Testing effort" }).click();
+  await expect(testing).toBeFocused();
+  await page.screenshot({
+    path: "test-results/reader-mobile-closed.png",
+    fullPage: true,
   });
-  assert.equal(conflict.status(), 409);
-  const malformed = await page.request.post(`${base}/api/plans`, {
-    data: {
-      parameters: [{ id: "bad", label: "Bad", type: "slider", value: 10 }],
-    },
+  // Markdown files produce a plain document, with no parameter controls.
+  page.on("dialog", (dialog) => dialog.accept());
+  await page.goto(base);
+  await page.locator("main a[href^='/plans/']").first().waitFor();
+  await page.getByLabel("Upload Markdown or JSON").setInputFiles({
+    name: "plain.md",
+    mimeType: "text/markdown",
+    buffer: Buffer.from(
+      "# A quiet document\n\n## Overview\n\nJust **read** this plan.\n\n- First step\n- Second step",
+    ),
   });
-  assert.equal(malformed.status(), 400);
-  // Failed saves preserve edits and surface the error above the action bar.
-  await page
-    .getByLabel("A note for your agent")
-    .fill("Keep this unsaved edit.");
-  await page.route(`**/api/plans/${id}`, (route) =>
-    route.fulfill({
-      status: 409,
-      contentType: "application/json",
-      body: JSON.stringify({
-        error: "Revision conflict. Reload the latest plan.",
-      }),
-    }),
+  await page.waitForURL("**/plans/*");
+  await expect(
+    page.getByRole("heading", { name: "A quiet document" }),
+  ).toBeVisible();
+  await expect(page.locator(".inline-value")).toHaveCount(0);
+  await expect(page.locator("article strong")).toHaveText("read");
+  await page.getByRole("button", { name: "Mark ready" }).click();
+  await expect(page.getByRole("status")).toHaveText("Ready");
+  await page.goto(`${base}/api-docs`);
+  await expect(page.getByRole("heading", { name: "Plan API" })).toBeVisible();
+  assert.equal(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth > innerWidth,
+    ),
+    false,
   );
-  await page.getByRole("button", { name: "Save draft", exact: true }).click();
-  await expect(page.getByRole("alert")).toContainText("Revision conflict");
-  await expect(page.getByLabel("A note for your agent")).toHaveValue(
-    "Keep this unsaved edit.",
+  assert.deepEqual(
+    errors.filter((e) => !e.includes("status of 409")),
+    [],
   );
-  const alertBox = await page.getByRole("alert").boundingBox();
-  const saveBox = await page.locator(".save-bar").boundingBox();
-  assert.ok(alertBox.y + alertBox.height <= saveBox.y);
-  assert.deepEqual(errors, []);
   console.log(
-    JSON.stringify({
-      passed: true,
-      url: page.url(),
-      checks:
-        "create, controls, comments, add feature, ready, retrieve, reload, resets, unified view, keyboard focus, save errors, mobile overflow, conflict, validation, browser errors",
-    }),
+    "Reader passed: import, reading, keyboard disclosures, reset, select, switch, notes, save, ready, reload, conflict, mobile, plain Markdown, docs.",
   );
 } finally {
   await browser.close();

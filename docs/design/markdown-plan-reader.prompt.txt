@@ -1,0 +1,32 @@
+Generation mode: built-in image_gen
+
+Use case: ui-mockup
+Asset type: high fidelity desktop screenshot concept for Smart Plan.
+Primary request: Start from first principles: a display-only Markdown plan with the most focused reading experience possible and strong typography. It must feel like a beautifully typeset generic Markdown document reader. Reading is the entire purpose.
+Style: exceptional restrained editorial typography, precise and implementable web design, flat screenshot with no perspective, no device frame. Warm almost-white background, near-black text, subdued gray metadata, tiny muted forest-green accent. No decorative illustrations or gradients.
+Composition: desktop 1536x1152 screenshot. Very quiet slim masthead with small "smartplan" wordmark at left, subtle "Plan" at right, hairline bottom border. Centered reading column roughly 740px wide, generous surrounding whitespace. No sidebar, no toolbar, no cards, no controls, no form, no save buttons, no editor, no action bar, no colored callout panels.
+Typography is the hero: very large bold tightly tracked sans-serif document title, quiet spacious lead paragraph, strong but modest section headings, highly readable charcoal body text with approximately 65-75 characters per line, 1.65 line height. Clean typographic distinction between h1/h2/h3, paragraphs, ordered and unordered lists, inline code, and a short blockquote. Body in a refined readable sans-serif such as Inter; all text crisp and natural. Understated hairline separators only if useful.
+Content must be a plausible ordinary Markdown plan, not a product landing page. Use this exact readable content and hierarchy:
+small subdued eyebrow "PROJECT PLAN"
+H1 "Interactive project map"
+Lead "A focused way to explore project dependencies and understand how the pieces fit together."
+small quiet metadata "September 26, 2026 · 4 min read"
+H2 "Overview"
+Paragraph "Build a lightweight graph that makes a project’s structure easy to understand. Start with familiar interactions and an existing graph library, then preserve each person’s layout between visits."
+Blockquote with a simple thin gray left border, no box: "Keep the first version small: make the relationships clear before adding ways to edit them."
+H2 "What we’re building"
+Paragraph "The initial release has three parts:"
+Ordered list with bold lead phrases followed by normal text:
+"1. Render the project. Show files and dependencies as a readable network of nodes and edges."
+"2. Make it explorable. Support panning, zooming, and dragging so people can follow connections."
+"3. Remember the layout. Restore saved node positions when the project is reopened."
+H2 "Implementation"
+Paragraph "Use React Flow for graph rendering and interaction. Keep the graph data separate from the view so the underlying model remains easy to test."
+H3 "Persisting the layout"
+Paragraph "Store node positions by project ID. Save after a drag ends, and apply the saved positions before displaying the graph."
+H2 "Validation"
+Unordered list:
+"Check that nodes and dependency edges render correctly."
+"Verify that moving a node preserves its connections."
+"Confirm that a saved layout survives a refresh."
+Constraints: display-only, absolutely no interactive components, no checkbox widgets, no parameter inputs, no floating buttons, no editing affordances, no diagrams. Strong readable typographic hierarchy and generous whitespace without oversizing body text. Fit the complete document naturally in the screenshot with comfortable bottom margin. This is a generic Markdown plan renderer, a quiet reading experience.

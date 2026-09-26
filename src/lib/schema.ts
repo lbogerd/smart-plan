@@ -29,12 +29,32 @@ export const attachmentSchema = z
 export type Attachment = z.infer<typeof attachmentSchema>;
 const dateValue = z.union([z.literal(""), z.iso.date()]);
 
-// Only the editor envelope is opinionated. Content and extra fields stay open.
+// Markdown and optional, explicitly placed inputs. Extra metadata stays open.
 export const parameterSchema = z
   .object({
     id: z.string().min(1),
     label: z.string().min(1),
-    type: z.string().default("text"),
+    type: z
+      .enum([
+        "slider",
+        "number",
+        "text",
+        "textarea",
+        "select",
+        "toggle",
+        "multi-select",
+        "radio",
+        "choice-cards",
+        "list",
+        "ranking",
+        "range",
+        "date",
+        "date-range",
+        "url",
+        "file",
+      ])
+      .default("text"),
+    summaries: z.record(z.string(), z.string()).optional(),
     value: z.json().default(""),
     suggested: z.json().optional(),
     description: z
@@ -142,28 +162,12 @@ export const parameterSchema = z
     )
       error("Select value must be one of its options");
   });
-export const featureSchema = z
-  .object({
-    id: z.string().min(1),
-    title: z.string().min(1),
-    description: z.string().default(""),
-    strength: z.number().int().min(0).max(5).default(2),
-    suggested: z.number().int().min(0).max(5).optional(),
-    levels: z
-      .record(z.string(), z.string())
-      .optional()
-      .describe("Optional descriptions keyed by strength value from 0 to 5."),
-    comments: z.string().default(""),
-  })
-  .passthrough();
 export const planSchema = z
   .object({
     title: z.string().min(1).default("Untitled plan"),
     brief: z.string().default(""),
-    content: z.json().default(""),
+    content: z.string().default(""),
     parameters: z.array(parameterSchema).default([]),
-    features: z.array(featureSchema).default([]),
-    comments: z.string().default(""),
   })
   .passthrough()
   .superRefine((plan, ctx) => {
@@ -193,7 +197,7 @@ export const planSchema = z
         path: ["parameters"],
         message: "Combined files must not exceed 512 KiB",
       });
-    for (const key of ["parameters", "features"] as const) {
+    for (const key of ["parameters"] as const) {
       const ids = plan[key].map((item) => item.id);
       if (new Set(ids).size !== ids.length)
         ctx.addIssue({
@@ -212,7 +216,6 @@ export const updateSchema = z
   .strict();
 export type Plan = z.infer<typeof planSchema>;
 export type Parameter = z.infer<typeof parameterSchema>;
-export type Feature = z.infer<typeof featureSchema>;
 export type PlanRecord = {
   id: string;
   revision: number;
@@ -222,17 +225,8 @@ export type PlanRecord = {
   original: Plan;
   plan: Plan;
 };
-export const depthLabels = [
-  "Leave it out",
-  "Smallest useful version",
-  "Basic functionality",
-  "Common workflows",
-  "Polish & edge cases",
-  "Extensive & robust",
-];
-
 export type PlanSummary = Pick<PlanRecord, "id" | "status" | "updatedAt"> & {
   title: string;
-  editorUrl: string;
+  planUrl: string;
   isExample: boolean;
 };
