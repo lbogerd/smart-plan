@@ -17,6 +17,10 @@ sudo docker compose up --build --detach --wait
 
 Compose binds only `127.0.0.1:3800`, uses `https://smart-plan.tainer.run`, and persists plans in the `smart-plan_plan-data` volume. The current deployment is a public research workspace. Writes are serialized within a single process, use atomic file replacement, and reject stale revisions. This is not a multi-worker storage system.
 
+## Agent skill
+
+The [Smart Plan skill](skills/smart-plan/SKILL.md) contains the instructions for agents to prepare plans and read user changes. Copy `skills/smart-plan` into your agent's skills directory to install it.
+
 ## Author a plan
 
 Upload a `.md` file for a plain reading experience, or upload JSON / use the API for inline decisions. Markdown supports headings, lists, quotes, tables, code, images, and fenced Mermaid diagrams. Raw HTML is disabled. Diagrams are display-only and can be expanded.
