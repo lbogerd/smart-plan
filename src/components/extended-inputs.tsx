@@ -59,7 +59,8 @@ function OrderedList({ p, change }: InputProps) {
               </span>
             )}
             <Button
-              className="ghost icon-button"
+              variant="ghost"
+              className="icon-button"
               aria-label={`Move ${p.label} item ${index + 1} up`}
               disabled={index === 0}
               onClick={() => move(index, -1)}
@@ -67,7 +68,8 @@ function OrderedList({ p, change }: InputProps) {
               <ArrowUp size={16} />
             </Button>
             <Button
-              className="ghost icon-button"
+              variant="ghost"
+              className="icon-button"
               aria-label={`Move ${p.label} item ${index + 1} down`}
               disabled={index === values.length - 1}
               onClick={() => move(index, 1)}
@@ -76,7 +78,8 @@ function OrderedList({ p, change }: InputProps) {
             </Button>
             {p.type === "list" && (
               <Button
-                className="ghost icon-button"
+                variant="ghost"
+                className="icon-button"
                 aria-label={`Remove ${p.label} item ${index + 1}`}
                 onClick={() => change(values.filter((_, i) => i !== index))}
               >
@@ -87,7 +90,10 @@ function OrderedList({ p, change }: InputProps) {
         ))}
       </ol>
       {p.type === "list" && (
-        <Button className="small" onClick={() => change([...values, ""])}>
+        <Button
+          className="justify-self-start"
+          onClick={() => change([...values, ""])}
+        >
           <Plus size={14} />
           Add item
         </Button>
@@ -163,15 +169,13 @@ function FileInput({ p, change, onReadingChange }: InputProps) {
           void readFiles(selected);
         }}
       />
-      <small id={`files-help-${p.id}`}>
-        256 KiB per file; 512 KiB across the plan. Files are saved with the plan
-        and visible to anyone with access.
-      </small>
+      <small id={`files-help-${p.id}`}>256 KiB per file · 512 KiB total</small>
       {reading && <span role="status">Reading files…</span>}
       {files.map((file, index) => (
         <div className="input-row" key={index}>
           <Button
-            className="ghost file-name"
+            variant="ghost"
+            className="file-name"
             onClick={() => download(file)}
             aria-label={`Download ${file.name}`}
           >
@@ -179,7 +183,8 @@ function FileInput({ p, change, onReadingChange }: InputProps) {
           </Button>
           <Button
             disabled={reading}
-            className="ghost icon-button"
+            variant="ghost"
+            className="icon-button"
             aria-label={`Remove ${file.name}`}
             onClick={() => change(files.filter((_, i) => i !== index))}
           >

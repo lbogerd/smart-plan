@@ -71,6 +71,21 @@
       "label": "file",
       "type": "file",
       "value": []
+    },
+    {
+      "id": "text",
+      "label": "text",
+      "type": "text",
+      "value": "Initial"
+    },
+    {
+      "id": "number",
+      "label": "number",
+      "type": "number",
+      "value": 2,
+      "min": 0,
+      "max": 10
     }
-  ]
+  ],
+  "content": "## Decisions\n\nmulti-select: [multi-select](input:multi-select).\n\nradio: [radio](input:radio).\n\nchoice-cards: [choice-cards](input:choice-cards).\n\nlist: [list](input:list).\n\nranking: [ranking](input:ranking).\n\nrange: [range](input:range).\n\ndate: [date](input:date).\n\ndate-range: [date-range](input:date-range).\n\nurl: [url](input:url).\n\nfile: [file](input:file).\n\nText: [Initial](input:text).\n\nCount: [2](input:number)."
 }

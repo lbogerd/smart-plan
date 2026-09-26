@@ -1,6 +1,6 @@
 # Smart Plan
 
-A small TanStack Start app for reviewing an agent’s plan before building it. JSON files store each proposal and its adjustments. The interface uses Radix primitives with understated, shadcn/ui-inspired styling.
+A quiet Markdown reader with optional inline decisions. Read and adjust in the same document: select an underlined value, change its control, and collapse it to keep reading. Built with TanStack Start, Tailwind CSS, locally hosted Inter, and Radix primitives styled in the spirit of shadcn/ui.
 
 ## Run
 
@@ -9,93 +9,96 @@ npm ci
 npm run dev
 ```
 
-Open http://localhost:3801. For a production build, run `npm run build` then `npm start` (port 3000). Set `PLAN_DATA_DIR` to change the storage directory; it defaults to `./data`. Set `APP_URL` to the canonical external origin behind a proxy.
+Development uses `http://127.0.0.1:3801`. `npm run build && npm start` serves the production build on port 3000. Set `PLAN_DATA_DIR` to change the JSON storage directory (default `./data`), and `APP_URL` to set the canonical browser-write origin.
 
 ```sh
 sudo docker compose up --build --detach --wait
 ```
 
-Compose exposes only `127.0.0.1:3800`. Plans persist in the `smart-plan_plan-data` Docker volume as individual JSON files. Keep a backup of that volume. This prototype uses a single process: updates are serialized per plan and written via atomic rename. It is not intended for multiple workers sharing the directory.
+Compose binds only `127.0.0.1:3800`, uses `https://smart-plan.tainer.run`, and persists plans in the `smart-plan_plan-data` volume. The current deployment is a public research workspace. Writes are serialized within a single process, use atomic file replacement, and reject stale revisions. This is not a multi-worker storage system.
 
-## Review interface
+## Author a plan
 
-The review page combines global parameters, the plan body and diagrams, editable feature cards, and notes in one continuous view. Changed controls show original values and individual resets. The change count compares the current plan with the original using JSON Patch, including content and diagram edits; unsaved status separately compares against the last save. JSON and optional authoring guidance are collapsed. A persistent action bar saves a draft or marks the review ready for the agent.
+Upload a `.md` file for a plain reading experience, or upload JSON / use the API for inline decisions. Markdown supports headings, lists, quotes, tables, code, images, and fenced Mermaid diagrams. Raw HTML is disabled. Diagrams are display-only and can be expanded.
 
-## Agent workflow
-
-1. POST a proposal to `https://smart-plan.tainer.run/api/plans`.
-2. Give the user the returned `editorUrl` and retain the plan ID.
-3. Wait until the user says their adjustments are done.
-4. GET `/api/plans/{id}` for a compact diff against the original proposal. Request `?full=true` when you need the complete record.
-5. Use the current parameters, feature strengths, comments, and added features to revise the plan or implement it. Optionally PATCH a revised plan for another review.
-
-The service does not call an LLM or automatically notify an agent. Inline scope explanations use agent-supplied descriptions; the submitted plan body stays unchanged until explicitly replaced.
-
-```sh
-curl https://smart-plan.tainer.run/api/plans \
-  -H 'Content-Type: application/json' \
-  --data-binary @examples/plan.json
+```json
+{
+  "title": "Project map",
+  "brief": "Explore project dependencies.",
+  "content": "## Validation\n\nRun [essential checks](input:testing) before shipping.",
+  "parameters": [
+    {
+      "id": "testing",
+      "label": "Testing effort",
+      "type": "slider",
+      "value": 1,
+      "min": 0,
+      "max": 2,
+      "summaries": {
+        "0": "manual checks",
+        "1": "essential checks",
+        "2": "integration tests"
+      },
+      "previews": {
+        "0": "Verify by hand.",
+        "1": "Build and core-flow smoke test.",
+        "2": "Test persistence and graph interactions."
+      }
+    }
+  ]
+}
 ```
 
-### Flexible schema
+`[label](input:id)` references a parameter by ID. The rendered link text is the current value, or its short `summaries` entry. `previews` supplies the longer explanation shown with the expanded control; `description` is its fallback. Each control appears below the containing Markdown block. References in lists, quotes, headings, and tables work too. Repeated references share a value. Unresolved references render their label as plain text, and parameters without references do not appear. Code samples are never interpreted as controls.
 
-`src/lib/schema.ts` exports `planSchema`, `parameterSchema`, `featureSchema`, and `updateSchema`.
+Only one adjustment is open at a time. Enter/Space opens it, Escape or the close button collapses it and restores focus. Adjustments stay local until **Save draft** or **Mark ready**. Reset restores a value from the immutable original. Failed saves preserve the local draft; leaving with unsaved changes prompts the browser’s normal confirmation. Marking ready does not call an agent.
 
-The editor envelope has optional `title`, `brief`, `parameters`, `features`, `comments`, and `content`, all with defaults. `content` accepts **any JSON value**: Markdown, nested steps, graphs, arrays, or a custom document. `.passthrough()` preserves extra fields on plans, features, and parameters. Only recognized editor fields are constrained.
+Plan content is Markdown text. There is no source editor, JSON editor, feature-card system, or separate editing mode. Custom metadata on plans and parameters is preserved, but legacy structured content and editor behavior are intentionally unsupported.
 
-Parameter types: `slider`, `number`, `text`, `textarea`, `select`, `toggle`, `multi-select`, `radio`, `choice-cards`, `list`, `ranking`, `range`, `date`, `date-range`, `url`, and `file`. Unknown types get a JSON editor. Use `suggested` and `description` to explain defaults, and `previews` to map values to scope descriptions. Slider defaults are 0–5 with step 1; override `min`, `max`, and `step` as needed. Select controls require `options`. IDs must be unique within their collection.
+### Inputs
 
-New input formats (see `examples/inputs-plan.json`):
+Supported types: `slider`, `number`, `text`, `textarea`, `select`, `toggle`, `multi-select`, `radio`, `choice-cards`, `list`, `ranking`, `range`, `date`, `date-range`, `url`, and `file`.
 
-| Type | `value` | Configuration |
-| --- | --- | --- |
-| `multi-select` | Array of unique selected strings | Nonempty unique `options` |
-| `radio`, `choice-cards` | One option string | Nonempty unique `options`; `previews` supplies option descriptions |
-| `list` | Array of strings | Add, edit, remove, and reorder items |
-| `ranking` | All option strings in order | Nonempty unique `options`; each appears exactly once |
-| `range` | `[lower, upper]` | `min`, `max`, `step`; defaults 0, 5, 1 |
-| `date` | `"YYYY-MM-DD"` or `""` | Calendar date without a time zone |
-| `date-range` | `{ "start": "", "end": "" }` | Each date is empty or YYYY-MM-DD; start cannot follow end |
-| `url` | HTTP(S) URL or `""` | Editable URL field |
-| `file` | Array of `{ name, type, size, data }` | `data` is raw base64; `size` is decoded bytes |
+- All inputs have unique `id`, `label`, `type`, and `value` fields. Optional `summaries`, `previews`, `description`, and `suggested` describe values.
+- Sliders default to 0–5, step 1. Numeric controls accept `min`, `max`, and `step`.
+- Select and choice controls require `options`; select accepts `presentation: "dropdown" | "radio" | "cards"`.
+- Multi-select values are unique option strings. Rankings contain every option in the chosen order. Lists contain strings and support adding, removal, and keyboard-accessible reordering.
+- Ranges use `[lower, upper]`. Dates use `YYYY-MM-DD` or an empty string. Date ranges use `{ "start": "", "end": "" }` with ordered endpoints.
+- URLs use HTTP(S) or an empty string. Attachments use arrays of `{ name, type, size, data }`, where data is raw base64 and size is decoded bytes. Limits: 256 KiB per file, 512 KiB total. Attachments share the plan’s visibility and remain in the original even after removal from the current plan.
 
-Existing `select` parameters also accept `presentation: "dropdown" | "radio" | "cards"` (default dropdown), retaining their string value and options. Choice controls display optional `previews` beside each option. Ordering controls support keyboard-accessible up/down buttons.
+See `examples/plan.json`, `examples/inputs-plan.json`, and `examples/mermaid-plan.json`. The library seeds a persistent example without overwriting its edits.
 
-Attachments persist inside the plan JSON and are included in API responses and diffs. Limits are 256 KiB per file and 512 KiB of decoded file data across the current plan; the overall 1 MB request limit still applies. Downloaded files use a binary Blob; they are not rendered inline. Files share the plan's public visibility. Removing a file from the current plan does not remove it from the immutable original if it was submitted there.
+## API
 
-Features have `id`, `title`, optional `description`, a 0–5 `strength`, optional `suggested`, `comments`, and optional `levels` mapping strength values to scope descriptions. Strength 0 excludes a feature. When guidance is absent, the UI shows the value or its short level label. Guidance is recommended, never required: missing, partial, and empty maps remain valid. Supply an example or explanation for every slider step, select option, toggle value (`true`/`false`), and feature strength. For open-ended text, number, and custom controls, use `description` for a representative example. Optional authoring hints identify gaps without blocking saves.
+1. `POST /api/plans` with a plan → HTTP 201, complete record and `planUrl`.
+2. Share `planUrl` and wait for the user to complete their review.
+3. `GET /api/plans/{id}` → `{ id, revision, status, base: "original", changes }`.
+4. Use the saved decisions to revise or implement the plan.
 
-### API
+`changes` contains JSON Patch add/replace/remove operations relative to the immutable original, never the previous retrieval. Paths use JSON Pointer escaping and zero-based array indices. An unchanged plan returns `[]`.
 
-- `GET /api/plans`: summaries sorted by most recently updated (`id`, `title`, `status`, `updatedAt`, `editorUrl`, `isExample`). Initializes one persistent example on first use, without overwriting edits.
-- `POST /api/plans`: raw plan document → HTTP 201, record plus `editorUrl`.
-- `GET /api/plans/{id}` (or `?full=false`): `{ id, revision, status, base: "original", changes }`. Changes are JSON Patch `add`, `replace`, or `remove` operations, with JSON Pointer paths relative to the original plan. Apply them in order to `original` to obtain the current plan. Only new/changed values are included; no old values or unchanged content. Unchanged plans return `changes: []`. The diff is always against the immutable original, not the last GET or previous revision. Array indices are zero-based and reflect earlier operations; `~0` escapes `~` and `~1` escapes `/` in keys.
-- `GET /api/plans/{id}?full=true`: complete record including immutable original, current plan, status, revision, and timestamps. Other `full` values return HTTP 400. POST and PATCH responses remain complete records.
-- `PATCH /api/plans/{id}`: `{ "revision": 1, "plan": { ... }, "status": "ready" }` → updated record. `plan` and `status` are optional. The plan is replaced, not deep-merged: first fetch with `?full=true`, modify, and resend the complete current plan to preserve custom fields. Updates to a plan default back to draft unless status is explicitly supplied.
+- `GET /api/plans`: summaries ordered by last update, with `planUrl` and `isExample`.
+- `GET /api/plans/{id}?full=true`: original, current plan, status, revision, and timestamps. Omit `full` or use `false` for the compact diff. Other values return 400.
+- `PATCH /api/plans/{id}`: `{ "revision": 1, "plan": { ... }, "status": "ready" }`. Plan and status are optional. Send the **complete** plan, retaining metadata: it replaces rather than merges. Plan updates default to draft; every accepted update increments revision.
 - `GET /health`: process health.
 
-Errors: 400 invalid JSON/schema, 404 unknown ID, 409 stale revision, 413 request over 1 MB, 415 non-JSON content type. Every successful PATCH increments revision. File paths are restricted to UUIDs. Browser writes require the configured same origin. Responses are not cached.
+Errors: 400 malformed/invalid payload, 403 cross-origin browser writes, 404 missing plan, 409 stale revision, 413 request over 1 MB, 415 non-JSON body. Storage filenames are UUIDs. Responses are not cached. There is no automatic agent notification.
 
-The public prototype has no authentication. The landing page lists all plans, including one reusable example; anyone can browse, create, read, and edit plans. Rate limits, storage quotas, accounts, and multi-process locking are outside this proof of concept.
-
-More examples and guidance are available at `/api-docs`.
-
-## Checks
+## Verify
 
 ```sh
 npm run check
 npm test
 npm run build
+# Run against an isolated local data directory; these tests create plans.
+PLAN_DATA_DIR=/tmp/smart-plan-tests npm run dev -- --port 3802
+node tests/browser.smoke.mjs
+node tests/inputs.smoke.mjs
+node tests/mermaid.smoke.mjs
+# Read-only production verification
+node tests/deployed.smoke.mjs
 ```
 
-Tests cover arbitrary JSON round-trips, immutable originals, persistent writes, concurrent revision conflicts, invalid paths, and control validation. `tests/browser.smoke.mjs` exercises the create/edit/save/retrieve flow against `BASE_URL` (defaults to the public URL; use a local origin when APP_URL is unset). Run it with `node tests/browser.smoke.mjs` after installing Playwright’s Chromium.
+Set `BASE_URL` to test another origin. Browser tests use Playwright Chromium (`npx playwright install chromium`). They cover disclosures, keyboard focus, resets, all input families, file upload/download, save/reload, ready status, real revision conflicts, plain Markdown uploads, diagram rendering, and mobile overflow. Screenshots are written to ignored `test-results/`.
 
-Framework setup follows the official [TanStack Start setup](https://tanstack.com/start/latest/docs/framework/react/build-from-scratch) and [Nitro hosting guide](https://tanstack.com/start/latest/docs/framework/react/guide/hosting).
-
-## Mermaid diagrams
-
-Use fenced `mermaid` code blocks in Markdown `content`. The plan review page renders diagrams with live source editing, source copy, fullscreen, zoom/pan, and SVG/PNG exports. Select **Apply to plan**, then save the plan to persist source changes. PNG export has a white background and caps image dimensions to avoid excessive memory use.
-
-For arbitrary JSON content, add a top-level `diagrams` array of `{ "id": "flow", "title": "Workflow", "source": "flowchart LR\n  A --> B" }` entries. This is an optional convention, not a required content structure. Entries with no string source stay preserved as data but do not render. The API retains source text; the existing diff format also covers diagram edits.
-
-Mermaid loads only when a diagram is shown. Strict mode and SVG sanitization disable HTML, external images, and links. Invalid source shows an inline error. See `examples/mermaid-plan.json` for a complete example.
+Approved visual references are in `docs/design/`. CSS uses Tailwind’s [Vite integration](https://tailwindcss.com/docs/installation/using-vite); Markdown rendering uses [react-markdown](https://github.com/remarkjs/react-markdown).

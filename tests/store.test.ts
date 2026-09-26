@@ -5,50 +5,50 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createPlan, getPlan, updatePlan } from "../src/lib/store.server";
 import { planSchema } from "../src/lib/schema";
+import { planDiff } from "../src/lib/plan-diff";
 
-test("custom JSON survives edits; original persists; concurrent edits conflict", async () => {
+test("Markdown and metadata persist; original stays immutable; concurrent edits conflict", async () => {
   const dir = await mkdtemp(join(tmpdir(), "smart-plan-test-"));
   process.env.PLAN_DATA_DIR = dir;
   try {
     const record = await createPlan({
       title: "Graph",
-      content: [{ arbitrary: { nested: [1, true, null] } }],
+      content: "Use [React Flow](input:library).",
       extra: { agent: "custom" },
-      features: [
-        { id: "graph", title: "Graph", plugin: { library: "existing" } },
-      ],
       parameters: [
         {
-          id: "custom",
-          label: "Custom",
-          type: "future-control",
-          value: { foo: [1] },
+          id: "library",
+          label: "Library",
+          type: "text",
+          value: "React Flow",
           extra: true,
         },
       ],
     });
     const plan = {
       ...record.plan,
-      comments: "Keep this simple",
-      features: [{ ...record.plan.features[0], strength: 1 }],
+      parameters: [{ ...record.plan.parameters[0], value: "Cytoscape.js" }],
     };
     const results = await Promise.allSettled([
       updatePlan(record.id, { revision: 1, plan, status: "ready" }),
       updatePlan(record.id, { revision: 1, plan }),
     ]);
     assert.equal(results.filter((r) => r.status === "fulfilled").length, 1);
-    const rejected = results.find(
-      (r) => r.status === "rejected",
-    ) as PromiseRejectedResult;
-    assert.equal(rejected.reason.status, 409);
+    assert.equal(
+      (results.find((r) => r.status === "rejected") as PromiseRejectedResult)
+        .reason.status,
+      409,
+    );
     const saved = await getPlan(record.id);
     assert.equal(saved.revision, 2);
     assert.equal(saved.status, "ready");
-    assert.equal(saved.original.features[0].strength, 2);
+    assert.equal(saved.original.parameters[0].value, "React Flow");
     assert.deepEqual(saved.plan.extra, { agent: "custom" });
-    assert.deepEqual(saved.plan.content, record.plan.content);
-    assert.deepEqual(saved.plan.features[0].plugin, { library: "existing" });
-    assert.deepEqual(saved.plan.parameters[0].value, { foo: [1] });
+    assert.equal(saved.plan.content, record.plan.content);
+    assert.equal(saved.plan.parameters[0].extra, true);
+    assert.deepEqual(planDiff(saved).changes, [
+      { op: "replace", path: "/parameters/0/value", value: "Cytoscape.js" },
+    ]);
     assert.deepEqual(
       JSON.parse(await readFile(join(dir, `${record.id}.json`), "utf8")),
       saved,
@@ -57,39 +57,40 @@ test("custom JSON survives edits; original persists; concurrent edits conflict",
     await assert.rejects(
       updatePlan(record.id, {
         revision: 2,
-        plan: { features: [{ id: "x", title: "X", strength: 6 }] },
+        plan: {
+          parameters: [{ id: "x", label: "X", type: "slider", value: 6 }],
+        },
       }),
     );
     assert.equal((await getPlan(record.id)).revision, 2);
+    const draft = await updatePlan(record.id, { revision: 2, plan });
+    assert.equal(draft.status, "draft");
   } finally {
     delete process.env.PLAN_DATA_DIR;
     await rm(dir, { recursive: true, force: true });
   }
 });
-test("schema validates controls while keeping the document open", () => {
-  assert.equal(
-    planSchema.safeParse({ completelyNewSection: { anything: true } }).success,
-    true,
+test("schema requires Markdown, supported controls and unique parameter IDs", () => {
+  assert.ok(
+    planSchema.safeParse({ content: "# Just a document", extra: true }).success,
   );
-  assert.equal(
-    planSchema.safeParse({
-      parameters: [{ id: "x", label: "X", type: "slider", value: 7 }],
+  assert.ok(!planSchema.safeParse({ content: { steps: [] } }).success);
+  assert.ok(
+    !planSchema.safeParse({
+      parameters: [{ id: "x", label: "X", type: "future-control" }],
     }).success,
-    false,
   );
-  assert.equal(
-    planSchema.safeParse({
+  assert.ok(
+    !planSchema.safeParse({
       parameters: [{ id: "x", label: "X", type: "toggle", value: "yes" }],
     }).success,
-    false,
   );
-  assert.equal(
-    planSchema.safeParse({
-      features: [
-        { id: "x", title: "A" },
-        { id: "x", title: "B" },
+  assert.ok(
+    !planSchema.safeParse({
+      parameters: [
+        { id: "x", label: "A" },
+        { id: "x", label: "B" },
       ],
     }).success,
-    false,
   );
 });

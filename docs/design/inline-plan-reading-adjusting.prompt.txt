@@ -1,0 +1,26 @@
+Generation mode: built-in image_gen
+
+Use case: ui-mockup
+Asset type: high-fidelity comparative UI design mockup, two side-by-side desktop reading views of the SAME Markdown plan.
+Primary request: Rethink a focused Markdown plan reader with mostly hidden inline inputs. Show an excellent "Reading" state and "Adjusting" state side by side. The design should be a document with optional contextual controls, not a form. The reader clicks a subtle inline value to reveal its input in place.
+Composition: landscape 1792x1200 or similar high resolution. Two equally sized tall screenshot panels side by side on a pale neutral presentation background, fine border and ample separation. Small annotation ABOVE each panel: left "01 / Reading", right "02 / Adjusting". Each panel contains the identical document at the same scroll position with the same typographic metrics. No device frame or browser chrome. Show a full legible document excerpt in both panels. The right panel’s expanded control naturally pushes subsequent text downward.
+Visual design: exceptionally restrained editorial web UI, warm off-white paper, near-black text, high-quality sans-serif like Inter, bold tight title, confident headings, very comfortable paragraph line height and whitespace. Muted indigo used very sparingly for interactive inline values. No green branding required, no dashboard design. Nearly all visual weight belongs to the writing. Tiny quiet "smartplan" wordmark at top of each panel, hairline below header. Main text has about 48-58 characters per line within each panel.
+Exact content in BOTH panels:
+Small eyebrow "PROJECT PLAN"
+H1 "Interactive project map"
+Lead "A focused way to understand how a project fits together."
+H2 "The approach"
+Paragraph "Build a lightweight graph of files and dependencies. Keep the first release small and make the relationships easy to follow."
+H2 "Exploring the graph"
+Paragraph "Use React Flow to render the graph. Start with pan, zoom, and drag so people can arrange the map as they explore."
+In this paragraph, "React Flow" is an inline interactive value with subtle dotted underline and tiny downward chevron, no filled pill or enclosing box. The phrase "pan, zoom, and drag" is ordinary text.
+H2 "Validation"
+Paragraph "Before shipping, run essential checks on the core workflow. Verify that the graph loads, nodes move correctly, and the layout survives a refresh."
+In this paragraph, "essential checks" is an inline interactive value with subdued indigo text and a fine dotted underline. A tiny down chevron immediately follows the phrase in the reading panel; in the adjusting panel it becomes an up chevron.
+After validation paragraph:
+H2 "Remembering the layout"
+Paragraph "Save node positions after each drag and restore them when the project is reopened."
+Left panel READING state: all prose uninterrupted, no visible input controls or forms. At bottom of document a tiny subtle hint with small pointer icon "Underlined values can be adjusted." No button.
+Right panel ADJUSTING state: directly AFTER the Validation paragraph and BEFORE Remembering the layout, insert a single small contextual control revealed by clicking "essential checks". This is the only visible control in the entire image. A faint indigo left rule visually connects the control to its paragraph, very light cool tinted background, small padding, no large shadows. Compact header "Testing effort" left and an unobtrusive X close icon right. A slim 0-5 slider with six ticks, set at 1, thumb in muted indigo. Short endpoint labels "Minimal" and "Thorough". Below slider small explanatory text "Build and core-flow smoke test." Final tiny quiet line "Suggested: 1". No Apply or Save button; the conceptual behavior is direct value adjustment, close collapses the panel, closing alone doesn't alter the value. Current value identical in both screenshots so it clearly shows only an open/closed transition.
+Constraints: preserve identical wording and values across both views. Focus on typography and natural reading rhythm. Inline inputs look like part of a sentence until opened; not badge soup, no big parameter sections. Do not display all controls simultaneously. No sidebars, floating toolbars, chat, editor, code source, JSON, sticky action bars, oversized buttons, toggles or cards unrelated to the one expanded testing control. No illustration. Make all text crisp and correctly spelled. Small presentation caption across bottom outside panels: "Read the plan. Open a decision only when you want to change it."
+

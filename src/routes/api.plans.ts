@@ -16,7 +16,7 @@ export const Route = createFileRoute("/api/plans")({
           return json(
             {
               ...record,
-              editorUrl: `${process.env.APP_URL || new URL(request.url).origin}/plans/${record.id}`,
+              planUrl: `${process.env.APP_URL || new URL(request.url).origin}/plans/${record.id}`,
             },
             201,
           );
