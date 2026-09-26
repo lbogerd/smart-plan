@@ -1453,3 +1453,133 @@ html {
     padding: 18px;
   }
 }
+
+/* shadcn/ui-style field composition, using Radix checkbox/radio/slider primitives. */
+.input-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.input-stack > .button {
+  align-self: flex-start;
+}
+.choice-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+.choice-option > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.choice-option small,
+.rank-value small {
+  display: block;
+  font-weight: 400;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.checkbox,
+.radio-item {
+  width: 18px;
+  height: 18px;
+  border: 1px solid #96a99f;
+  background: white;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.checkbox {
+  border-radius: 4px;
+}
+.checkbox[data-state="checked"] {
+  background: var(--green);
+  color: white;
+  border-color: var(--green);
+}
+.radio-item {
+  border-radius: 50%;
+}
+.radio-indicator {
+  height: 8px;
+  width: 8px;
+  border-radius: 50%;
+  background: var(--green);
+}
+.choice-cards .choice-option {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.choice-cards .choice-option[data-selected="true"] {
+  border-color: var(--green);
+  background: #f0f7f3;
+}
+.ordered-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.input-row input,
+.rank-value {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.list-position {
+  min-width: 18px;
+  color: var(--muted);
+}
+.date-range {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.date-range label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.date-range input {
+  min-width: 0;
+}
+.file-name {
+  overflow-wrap: anywhere;
+  white-space: normal;
+  text-align: left;
+  min-width: 0;
+}
+input[type="file"] {
+  max-width: 100%;
+}
+input[type="file"]::file-selector-button {
+  border: 0;
+  border-radius: 5px;
+  padding: 6px 10px;
+  margin-right: 10px;
+  background: #edf3ef;
+  color: inherit;
+  cursor: pointer;
+}
+@media (max-width: 480px) {
+  .date-range {
+    grid-template-columns: 1fr;
+  }
+  .input-row .icon-button {
+    padding: 5px;
+  }
+}

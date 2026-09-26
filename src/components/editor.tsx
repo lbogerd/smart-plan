@@ -16,9 +16,11 @@ import {
 import { planDiff } from "../lib/plan-diff";
 import { PlanContent } from "./plan-content";
 import { Button, Range, Toggle } from "./ui";
+import { ExtendedInput, hasExtendedInput } from "./extended-inputs";
 import { GuidanceHints } from "./guidance-hints";
 import {
   depthLabels,
+  planSchema,
   type Plan,
   type PlanRecord,
   type Parameter,
@@ -52,6 +54,12 @@ export async function api(url: string, method = "GET", data?: unknown) {
 }
 function displayValue(value: unknown): string {
   if (typeof value === "boolean") return value ? "On" : "Off";
+  if (
+    Array.isArray(value) &&
+    value.length &&
+    value.every((v) => v && typeof v === "object" && "data" in v && "name" in v)
+  )
+    return value.map((v) => String(v.name)).join(", ");
   if (typeof value === "object") return JSON.stringify(value);
   return String(value ?? "");
 }
@@ -85,7 +93,9 @@ function ParameterControl({
   p,
   change,
   original,
+  onReadingChange,
 }: {
+  onReadingChange: (reading: boolean) => void;
   original?: Parameter;
   p: Parameter;
   change: (v: Parameter["value"]) => void;
@@ -114,7 +124,13 @@ function ParameterControl({
         )}
       </div>
       {p.description && <p className="description">{p.description}</p>}
-      {p.type === "slider" ? (
+      {hasExtendedInput(p) ? (
+        <ExtendedInput
+          p={p}
+          change={change}
+          onReadingChange={onReadingChange}
+        />
+      ) : p.type === "slider" ? (
         <>
           <Range
             id={id}
@@ -166,7 +182,7 @@ function ParameterControl({
       ) : p.type !== "toggle" ? (
         <JsonInput value={p.value} onChange={change} label={p.label} />
       ) : null}
-      {p.previews?.[String(p.value)]?.trim() && (
+      {!hasExtendedInput(p) && p.previews?.[String(p.value)]?.trim() && (
         <p className="value-guidance">{p.previews[String(p.value)]}</p>
       )}
       {p.suggested !== undefined && (
@@ -231,6 +247,7 @@ function JsonInput({
 export function Editor({ initial }: { initial: PlanRecord }) {
   const [record, setRecord] = useState(initial);
   const [plan, setPlan] = useState<Plan>(initial.plan);
+  const [readingFiles, setReadingFiles] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -251,6 +268,20 @@ export function Editor({ initial }: { initial: PlanRecord }) {
     setError("");
     setNotice("");
     try {
+      const validation = planSchema.safeParse(plan);
+      if (!validation.success)
+        throw new Error(
+          validation.error.issues
+            .map((issue) => {
+              const parameter =
+                issue.path[0] === "parameters" &&
+                typeof issue.path[1] === "number"
+                  ? plan.parameters[issue.path[1]]
+                  : undefined;
+              return `${parameter?.label ? parameter.label + ": " : ""}${issue.message}`;
+            })
+            .join("; "),
+        );
       const next = await api(`/api/plans/${record.id}`, "PATCH", {
         revision: record.revision,
         plan,
@@ -353,7 +384,7 @@ export function Editor({ initial }: { initial: PlanRecord }) {
           · {changedCount} {changedCount === 1 ? "change" : "changes"} from the
           original proposal
         </p>
-        <div className="review-surface" inert={busy}>
+        <div className="review-surface" inert={busy || readingFiles}>
           <section className="controls-column">
             <div className="section-title">
               <h2>
@@ -369,6 +400,7 @@ export function Editor({ initial }: { initial: PlanRecord }) {
                 plan.parameters.map((p) => (
                   <ParameterControl
                     key={p.id}
+                    onReadingChange={setReadingFiles}
                     p={p}
                     original={record.original.parameters.find(
                       (o) => o.id === p.id,
@@ -602,12 +634,15 @@ export function Editor({ initial }: { initial: PlanRecord }) {
           </span>
         </div>
         <div>
-          <Button disabled={busy || !dirty} onClick={() => save(false)}>
+          <Button
+            disabled={busy || readingFiles || !dirty}
+            onClick={() => save(false)}
+          >
             Save draft
           </Button>
           <Button
             className="primary"
-            disabled={busy}
+            disabled={busy || readingFiles}
             onClick={() => save(true)}
           >
             <CheckCheck size={16} />
