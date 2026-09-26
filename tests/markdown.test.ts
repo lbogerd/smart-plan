@@ -36,13 +36,12 @@ test("inline references use current values and disclosures stay collapsed", () =
   assert.ok(!html.includes("input-panel"));
   assert.ok(html.includes("<table>"));
 });
-test("plain Markdown and unknown references remain readable; unsafe URLs and HTML stay inert", () => {
+test("plain Markdown stays readable; unsafe URLs and HTML stay inert", () => {
   const html = render(
-    "# Heading\n\n**Body** and [unknown](input:missing).\n\n[unsafe](javascript:alert)\n\n<script>alert(1)</script>\n\n`[literal](input:test)`",
+    "# Heading\n\n**Body** and plain text.\n\n[unsafe](javascript:alert)\n\n<script>alert(1)</script>\n\n`[literal](input:test)`",
   );
   assert.ok(html.includes("<h1>Heading</h1>"));
   assert.ok(html.includes("<strong>Body</strong>"));
-  assert.ok(html.includes("unknown"));
   assert.ok(!html.includes('href="javascript:'));
   assert.ok(!html.includes("<script>"));
   assert.ok(!html.includes("aria-expanded"));

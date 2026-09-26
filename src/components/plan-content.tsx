@@ -1,5 +1,8 @@
 import {
   createContext,
+  useLayoutEffect,
+  memo,
+  useMemo,
   useContext,
   useRef,
   useState,
@@ -7,6 +10,12 @@ import {
 } from "react";
 import Markdown, { defaultUrlTransform, type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkDirective from "remark-directive";
+import {
+  conditionValue,
+  planDirectives,
+  selectPassage,
+} from "../lib/plan-rules";
 import { ChevronDown, X, RotateCcw } from "lucide-react";
 import type { Plan, Parameter } from "../lib/schema";
 import { inlineInputs, inputSummary } from "../lib/inline-inputs";
@@ -15,6 +24,7 @@ import { ParameterControl } from "./parameter-control";
 import { Button, proseClass } from "./ui";
 
 type ReadingContext = {
+  plan: Plan;
   parameters: Parameter[];
   original: Parameter[];
   active: string | null;
@@ -41,6 +51,8 @@ function Value({
     <button
       type="button"
       className="inline-value"
+      data-parameter={id}
+      data-panel={panel}
       aria-label={`Adjust ${p.label}: ${inputSummary(p)}`}
       aria-expanded={expanded}
       aria-controls={expanded ? panel : undefined}
@@ -123,7 +135,74 @@ function Panel({ id, panel }: { id: string; panel: string }) {
     </section>
   );
 }
+type CustomProps = {
+  node?: { properties: Record<string, unknown> };
+  children?: ReactNode;
+};
+function Passage({ id, scope }: { id: string; scope: string }) {
+  const { plan } = useContext(Context);
+  const passage = plan.passages?.find((p) => p.id === id);
+  const parameter = plan.parameters.find((p) => p.id === passage?.parameter);
+  const content = passage && selectPassage(passage, parameter?.value);
+  return (
+    <div data-passage={id}>
+      <Document
+        source={content ?? "Passage unavailable."}
+        scope={scope}
+        grouped
+      />
+      {plan.parameters.map((p) => (
+        <Panel
+          key={p.id}
+          id={p.id}
+          panel={`${scope}/passage/${encodeURIComponent(p.id)}`}
+        />
+      ))}
+    </div>
+  );
+}
+function Conditional({
+  parameter,
+  equals,
+  children,
+}: {
+  parameter: string;
+  equals: string;
+  children?: ReactNode;
+}) {
+  const { plan } = useContext(Context);
+  const p = plan.parameters.find((p) => p.id === parameter);
+  let visible = false;
+  try {
+    visible = !!p && p.value === conditionValue(p, equals);
+  } catch {
+    /* Invalid persisted rules remain hidden. */
+  }
+  return (
+    <div hidden={!visible} data-condition-parameter={parameter}>
+      {children}
+    </div>
+  );
+}
 const components = {
+  "plan-passage"({ node }: CustomProps) {
+    return (
+      <Passage
+        id={String(node?.properties["data-passage"])}
+        scope={String(node?.properties["data-scope"])}
+      />
+    );
+  },
+  "plan-condition"({ node, children }: CustomProps) {
+    return (
+      <Conditional
+        parameter={String(node?.properties["data-parameter"])}
+        equals={String(node?.properties["data-equals"])}
+      >
+        {children}
+      </Conditional>
+    );
+  },
   a({ node, href, children, ...props }) {
     const id = node?.properties["data-input-id"];
     const panel = node?.properties["data-panel-id"];
@@ -166,6 +245,43 @@ const components = {
   },
 } satisfies Components & Record<string, unknown>;
 
+const Document = memo(function Document({
+  source,
+  scope,
+  grouped = false,
+}: {
+  source: string;
+  scope: string;
+  grouped?: boolean;
+}) {
+  const remarkPlugins = useMemo(
+    () =>
+      [
+        remarkGfm,
+        remarkDirective,
+        [planDirectives, { scope }],
+      ] as import("unified").PluggableList,
+    [scope],
+  );
+  const rehypePlugins = useMemo(
+    () =>
+      [[inlineInputs, { scope, grouped }]] as import("unified").PluggableList,
+    [scope, grouped],
+  );
+  return (
+    <Markdown
+      remarkPlugins={remarkPlugins}
+      rehypePlugins={rehypePlugins}
+      components={components}
+      urlTransform={(url) =>
+        url.startsWith("input:") ? url : defaultUrlTransform(url)
+      }
+    >
+      {source}
+    </Markdown>
+  );
+});
+
 export function PlanContent({
   plan,
   original,
@@ -179,13 +295,43 @@ export function PlanContent({
 }) {
   const [active, setActive] = useState<string | null>(null);
   const trigger = useRef<HTMLButtonElement | null>(null);
+  const root = useRef<HTMLDivElement>(null);
+  const visibleTriggers = () =>
+    Array.from(
+      root.current?.querySelectorAll<HTMLButtonElement>("button[data-panel]") ??
+        [],
+    ).filter((button) => !button.closest("[hidden]"));
+  const restoreFocus = () => {
+    const buttons = visibleTriggers();
+    const target =
+      buttons.find((b) => b.dataset.panel === active) ??
+      buttons.find(
+        (b) => b.dataset.parameter === trigger.current?.dataset.parameter,
+      );
+    (target ?? buttons[0])?.focus();
+  };
+  useLayoutEffect(() => {
+    if (!active) return;
+    const buttons = visibleTriggers();
+    if (buttons.some((button) => button.dataset.panel === active)) return;
+    const hidden = trigger.current?.closest<HTMLElement>(
+      "[hidden][data-condition-parameter]",
+    );
+    setActive(null);
+    const controller = buttons.find(
+      (b) => b.dataset.parameter === hidden?.dataset.conditionParameter,
+    );
+    if (controller) controller.focus();
+    else restoreFocus();
+  }, [plan, active]);
   const close = () => {
     setActive(null);
-    trigger.current?.focus();
+    restoreFocus();
   };
   return (
     <Context.Provider
       value={{
+        plan,
         parameters: plan.parameters,
         original: original.parameters,
         active,
@@ -198,17 +344,11 @@ export function PlanContent({
         onReadingChange,
       }}
     >
-      <div className={proseClass}>
-        <Markdown
-          remarkPlugins={[remarkGfm]}
-          rehypePlugins={[inlineInputs]}
-          components={components}
-          urlTransform={(url) =>
-            url.startsWith("input:") ? url : defaultUrlTransform(url)
-          }
-        >
-          {typeof plan.content === "string" ? plan.content : ""}
-        </Markdown>
+      <div ref={root} className={proseClass}>
+        <Document
+          source={typeof plan.content === "string" ? plan.content : ""}
+          scope="plan"
+        />
       </div>
     </Context.Provider>
   );

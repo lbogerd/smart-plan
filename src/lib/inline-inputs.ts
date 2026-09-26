@@ -20,37 +20,48 @@ export function inputSummary(p: Parameter): string {
   return String(p.value || (p.value === 0 ? "0" : "not set"));
 }
 
-// Insert panels as siblings of top-level Markdown blocks, never inside a <p>,
-// heading, table, or inline element. Each occurrence gets a stable disclosure ID.
-export function inlineInputs() {
+// Rule wrappers keep their place in the tree. Passage controls live outside
+// replaceable prose; normal controls follow their containing Markdown block.
+export function inlineInputs({ scope = "plan", grouped = false } = {}) {
   return (tree: Root) => {
-    tree.children = tree.children.flatMap((block, index) => {
-      const panels = new Map<string, string>();
-      function walk(node: Root | Root["children"][number]) {
-        if (
-          node.type === "element" &&
-          node.tagName === "a" &&
-          typeof node.properties.href === "string" &&
-          node.properties.href.startsWith("input:")
-        ) {
-          const id = node.properties.href.slice(6);
-          const panel = `block-${index}-${encodeURIComponent(id)}`;
-          panels.set(id, panel);
-          node.properties["data-input-id"] = id;
-          node.properties["data-panel-id"] = panel;
+    function blocks(parent: Root | Element) {
+      parent.children = parent.children.flatMap((block) => {
+        const panels = new Map<string, string>();
+        function walk(node: Root["children"][number]) {
+          if (node.type === "element" && node.tagName === "plan-passage")
+            return;
+          if (node.type === "element" && node.tagName === "plan-condition") {
+            blocks(node);
+            return;
+          }
+          if (
+            node.type === "element" &&
+            node.tagName === "a" &&
+            typeof node.properties.href === "string" &&
+            node.properties.href.startsWith("input:")
+          ) {
+            const id = node.properties.href.slice(6);
+            const panel = `${scope}/${grouped ? "passage" : `block-${block.position?.start.offset ?? 0}`}/${encodeURIComponent(id)}`;
+            panels.set(id, panel);
+            node.properties["data-input-id"] = id;
+            node.properties["data-panel-id"] = panel;
+          }
+          if ("children" in node) node.children.forEach(walk);
         }
-        if ("children" in node) node.children.forEach(walk);
-      }
-      walk(block);
-      return [
-        block,
-        ...Array.from(panels, ([id, panel]): Element => ({
-          type: "element",
-          tagName: "input-panel",
-          properties: { "data-input-id": id, "data-panel-id": panel },
-          children: [],
-        })),
-      ];
-    });
+        walk(block);
+        return [
+          block,
+          ...(grouped
+            ? []
+            : Array.from(panels, ([id, panel]): Element => ({
+                type: "element",
+                tagName: "input-panel",
+                properties: { "data-input-id": id, "data-panel-id": panel },
+                children: [],
+              }))),
+        ];
+      });
+    }
+    blocks(tree);
   };
 }

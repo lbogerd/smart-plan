@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { validatePlanRules } from "./plan-rules";
 
 export const MAX_FILE_BYTES = 256 * 1024;
 export const MAX_PLAN_FILE_BYTES = 512 * 1024;
@@ -162,15 +163,44 @@ export const parameterSchema = z
     )
       error("Select value must be one of its options");
   });
+export const passageSchema = z
+  .object({
+    id: z
+      .string()
+      .regex(
+        /^[a-zA-Z0-9_-]+$/,
+        "Passage IDs use letters, numbers, underscores, and hyphens",
+      ),
+    parameter: z.string().min(1),
+    cases: z
+      .array(
+        z
+          .object({
+            value: z.union([z.string(), z.number(), z.boolean()]),
+            content: z.string(),
+          })
+          .strict(),
+      )
+      .min(1),
+    fallback: z.string().optional(),
+  })
+  .strict();
 export const planSchema = z
   .object({
     title: z.string().min(1).default("Untitled plan"),
     brief: z.string().default(""),
     content: z.string().default(""),
     parameters: z.array(parameterSchema).default([]),
+    passages: z.array(passageSchema).default([]),
   })
   .passthrough()
   .superRefine((plan, ctx) => {
+    for (const issue of validatePlanRules(
+      plan,
+      (p, value) => parameterSchema.safeParse({ ...p, value }).success,
+    )) {
+      ctx.addIssue({ code: "custom", ...issue });
+    }
     const fileBytes = plan.parameters
       .filter((p) => p.type === "file")
       .reduce(
