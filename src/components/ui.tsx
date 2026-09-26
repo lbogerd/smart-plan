@@ -79,9 +79,12 @@ export function Brand() {
   return (
     <a
       href="/"
-      className="text-lg font-semibold tracking-[-0.05em] text-foreground"
+      className="inline-flex items-center gap-2.5 text-lg font-semibold tracking-[-0.05em] text-foreground"
     >
-      smartplan<span className="text-accent">.</span>
+      <img src="/icon.svg" width={28} height={28} alt="" className="shrink-0" />
+      <span>
+        smartplan<span className="text-accent">.</span>
+      </span>
     </a>
   );
 }
