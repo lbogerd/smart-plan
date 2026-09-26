@@ -66,10 +66,13 @@ try {
       exact: true,
     });
     await slider.focus();
+    const controlY = (await slider.boundingBox()).y;
     await page.keyboard.press("Home");
     for (let level = 0; level <= 5; level++) {
       await expect(slider).toBeFocused();
       await expect(slider).toHaveAttribute("aria-valuenow", String(level));
+      const currentY = (await slider.boundingBox()).y;
+      assert.ok(Math.abs(currentY - controlY) < 1, "Changing passage text must not move its control");
       await expect(adjust("Interaction depth")).toContainText(
         sample.parameters[1].summaries[String(level)],
       );

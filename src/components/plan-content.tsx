@@ -146,11 +146,6 @@ function Passage({ id, scope }: { id: string; scope: string }) {
   const content = passage && selectPassage(passage, parameter?.value);
   return (
     <div data-passage={id}>
-      <Document
-        source={content ?? "Passage unavailable."}
-        scope={scope}
-        grouped
-      />
       {plan.parameters.map((p) => (
         <Panel
           key={p.id}
@@ -158,6 +153,11 @@ function Passage({ id, scope }: { id: string; scope: string }) {
           panel={`${scope}/passage/${encodeURIComponent(p.id)}`}
         />
       ))}
+      <Document
+        source={content ?? "Passage unavailable."}
+        scope={scope}
+        grouped
+      />
     </div>
   );
 }

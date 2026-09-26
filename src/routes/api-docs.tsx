@@ -29,7 +29,7 @@ function Docs() {
             <code>summaries</code> provide short labels, while{" "}
             <code>previews</code> explain values inside the expanded control.
             References in paragraphs, headings, lists, quotes, and tables expand
-            below their containing block. Repeated references share one value.
+            above their containing block. Repeated references share one value.
             Only referenced parameters appear.
           </p>
           <p>

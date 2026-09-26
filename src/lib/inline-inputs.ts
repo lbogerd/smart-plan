@@ -21,7 +21,7 @@ export function inputSummary(p: Parameter): string {
 }
 
 // Rule wrappers keep their place in the tree. Passage controls live outside
-// replaceable prose; normal controls follow their containing Markdown block.
+// replaceable prose; normal controls precede their containing Markdown block.
 export function inlineInputs({ scope = "plan", grouped = false } = {}) {
   return (tree: Root) => {
     function blocks(parent: Root | Element) {
@@ -50,7 +50,6 @@ export function inlineInputs({ scope = "plan", grouped = false } = {}) {
         }
         walk(block);
         return [
-          block,
           ...(grouped
             ? []
             : Array.from(panels, ([id, panel]): Element => ({
@@ -59,6 +58,7 @@ export function inlineInputs({ scope = "plan", grouped = false } = {}) {
                 properties: { "data-input-id": id, "data-panel-id": panel },
                 children: [],
               }))),
+          block,
         ];
       });
     }

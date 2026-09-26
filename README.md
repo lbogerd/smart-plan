@@ -49,7 +49,7 @@ Upload a `.md` file for a plain reading experience, or upload JSON / use the API
 }
 ```
 
-`[label](input:id)` references a parameter by ID. The rendered link text is the current value, or its short `summaries` entry. `previews` supplies the longer explanation shown with the expanded control; `description` is its fallback. Each control appears below the containing Markdown block. References in lists, quotes, headings, and tables work too. Repeated references share a value. Unknown input references are rejected on create/update; parameters without references do not appear. Code samples are never interpreted as controls.
+`[label](input:id)` references a parameter by ID. The rendered link text is the current value, or its short `summaries` entry. `previews` supplies the longer explanation shown with the expanded control; `description` is its fallback. Each control appears above the containing Markdown block. References in lists, quotes, headings, and tables work too. Repeated references share a value. Unknown input references are rejected on create/update; parameters without references do not appear. Code samples are never interpreted as controls.
 
 Only one adjustment is open at a time. Enter/Space opens it, Escape or the close button collapses it and restores focus. Adjustments stay local until **Save draft** or **Mark ready**. Reset restores a value from the immutable original. Failed saves preserve the local draft; leaving with unsaved changes prompts the browser’s normal confirmation. Marking ready does not call an agent.
 
@@ -93,7 +93,7 @@ The parameter’s type determines how `equals` is parsed: exact text, a numeric 
 
 A controlling input must be reachable outside conditions and in every alternative of its containing passages. Place it outside a passage if some cases intentionally omit it. Validation checks every authored branch, regardless of current values, and rejects unknown references, duplicate IDs/cases, impossible case values, missing fallbacks/coverage, recursive passages, and unreachable controllers. Passage nesting is limited to eight levels and expanded plans to 20,000 Markdown nodes.
 
-Passage controls remain mounted below the replaceable passage. A value change can replace a sentence with a list or headings while retaining the open control and cursor. Hidden sections keep their values; if the active control becomes hidden, focus returns to an available controller. There is no added rule-authoring UI.
+Passage controls remain mounted above the replaceable passage. A value change can replace a sentence with a list or headings while retaining the open control and cursor. Hidden sections keep their values; if the active control becomes hidden, focus returns to an available controller. There is no added rule-authoring UI.
 
 **For agents:** fetch `?full=true`, use each current `parameters[].value` to select the matching passage case (or its explicit fallback), and include `when` contents only when the typed equality matches. Recursively apply the same rules to nested passages and sections, then substitute inline values. Only those resolved instructions apply. Authored Markdown and rules remain unchanged when a user adjusts a value; the API diff contains parameter changes, not a second generated document.
 
