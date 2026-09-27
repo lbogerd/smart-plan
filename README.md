@@ -2,6 +2,10 @@
 
 A quiet Markdown reader with optional inline decisions. Read and adjust in the same document: select an underlined value, change its control, and collapse it to keep reading. Built with TanStack Start, Tailwind CSS, locally hosted Inter, and Radix primitives styled in the spirit of shadcn/ui.
 
+<img src="public/icon.svg" width="64" height="64" alt="Smart Plan icon: a document with an adjustable line on a purple tile" />
+
+The project icon lives in [`public/icon.svg`](public/icon.svg). Its document and inline adjustment mark use the app’s purple accent (`#5753b8`). The shared header and browser favicon use this same scalable asset.
+
 ## Run
 
 ```sh
